@@ -31,12 +31,12 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - db_data:/var/lib/mysql
+      - test-mysql-e6ims5-data:/var/lib/mysql
     networks:      # <--- Tambahkan ini
       - spk_network
 
 volumes:
-  db_data:
+  test-mysql-e6ims5-data:
 
 networks:          # <--- Definisikan network di sini
   spk_network:
