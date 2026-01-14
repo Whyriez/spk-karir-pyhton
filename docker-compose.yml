@@ -30,8 +30,6 @@ services:
       - "3307:3306"
     volumes:
       - skripsi-spkdb-f90puq-data:/var/lib/mysql
-    networks:      # <--- Tambahkan ini
-      - spk_network
 
 volumes:
   skripsi-spkdb-f90puq-data:
