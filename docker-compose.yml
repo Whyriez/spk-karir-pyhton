@@ -17,8 +17,6 @@ services:
     depends_on:
       - db
     restart: always
-    networks:      # <--- Tambahkan ini
-      - spk_network
 
   db:
     image: mysql:8.0
@@ -37,7 +35,3 @@ services:
 
 volumes:
   skripsi-spkdb-f90puq-data:
-
-networks:          # <--- Definisikan network di sini
-  spk_network:
-    driver: bridge
