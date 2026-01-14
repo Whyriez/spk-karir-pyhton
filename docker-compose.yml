@@ -9,7 +9,7 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=production
       - SECRET_KEY=kunci_rahasia_untuk_local
-      - DB_HOST=db
+      - DB_HOST=skripsi-spkdb-f90puq
       - DB_PORT=3306
       - DB_DATABASE=spk_db
       - DB_USERNAME=user
