@@ -1,0 +1,49 @@
+# --- General / OS ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# --- Docker ---
+# Jika ada file docker generate lokal
+docker-compose.override.yml
+
+# --- Frontend (React) ---
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# --- Backend (Flask/Python) ---
+backend/venv/
+backend/.venv/
+backend/env/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/instance/
+
+# Ignore hasil build React yang masuk ke static Flask
+# Kita ingin ini di-build ulang oleh server/docker, bukan dari laptop
+backend/static/react/
+
+# --- Environment Variables (SANGAT PENTING) ---
+.env
+backend/.env
+frontend/.env
+
+# --- Migrations ---
+# Biasanya kita commit file migrasi, tapi abaikan temporary file
+backend/migrations/__pycache__/

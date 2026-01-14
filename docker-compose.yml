@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      # Menyesuaikan dengan config.py di backend
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - SECRET_KEY=kunci_rahasia_untuk_local
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=spk_db
+      - DB_USERNAME=user
+      - DB_PASSWORD=password
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: spk_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    # Opsional: Mapping port db ke host jika ingin inspect via DBeaver/HeidiSQL
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

@@ -1,0 +1,14 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-Cors
+mysql-connector-python
+python-dotenv
+gunicorn
+pymysql
+cryptography
+flask-jwt-extended
+pandas
+openpyxl
+scipy
+numpy
