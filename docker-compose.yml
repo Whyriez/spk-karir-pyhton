@@ -9,20 +9,20 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=production
       - SECRET_KEY=kunci_rahasia_untuk_local
-      # KONEKSI DATABASE
       - DB_HOST=db
-      - DB_PORT=3306        # <--- WAJIB 3306 (Internal Port), JANGAN 3307
+      - DB_PORT=3306
       - DB_DATABASE=spk_db
       - DB_USERNAME=user
       - DB_PASSWORD=password
     depends_on:
       - db
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: always
+    networks:      # <--- Tambahkan ini
+      - spk_network
 
   db:
-    image: mariadb:10.6
+    image: mysql:8.0
+    restart: always
     environment:
       MYSQL_DATABASE: spk_db
       MYSQL_USER: user
@@ -31,12 +31,12 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - spk_db_data_v3:/var/lib/mysql
+      - db_data:/var/lib/mysql
     networks:      # <--- Tambahkan ini
       - spk_network
 
 volumes:
-  spk_db_data_v3:
+  db_data:
 
 networks:          # <--- Definisikan network di sini
   spk_network:
