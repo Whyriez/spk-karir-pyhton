@@ -1,4 +1,6 @@
-from flask import Blueprint, request, jsonify
+import pandas as pd
+import io
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt
 from werkzeug.security import generate_password_hash
 from models import db, User, RoleEnum, RiwayatKelas, Periode, Jurusan,NilaiSiswa, HasilRekomendasi
@@ -27,6 +29,7 @@ def get_siswa():
 
         # LOGIKA BARU: Cari kelas di RiwayatKelas berdasarkan Periode Aktif
         kelas_str = '-'
+        status_akhir = 'Aktif'
         if periode_aktif:
             riwayat = RiwayatKelas.query.filter_by(
                 siswa_id=s.id,
@@ -34,6 +37,7 @@ def get_siswa():
             ).first()
             if riwayat:
                 kelas_str = riwayat.tingkat_kelas
+                status_akhir = riwayat.status_akhir
 
         data.append({
             'id': s.id,
@@ -42,6 +46,7 @@ def get_siswa():
             'kelas_saat_ini': kelas_str,  # Hasil lookup dari Riwayat
             'jurusan_nama': jurusan_nama,
             'jurusan_id': s.jurusan_id,
+            'status_akhir_periode_ini': status_akhir,
             'created_at': s.created_at
         })
 
@@ -189,3 +194,192 @@ def delete_siswa(id):
         # Tampilkan error asli untuk debugging
         print(f"Error Delete Siswa: {e}")
         return jsonify({'msg': f'Gagal menghapus siswa: {str(e)}'}), 400
+
+@admin_siswa_bp.route('/update-status-kenaikan-bulk', methods=['POST'], strict_slashes=False)
+@jwt_required()
+def update_status_kenaikan_bulk():
+    claims = get_jwt()
+    if claims.get('role') != 'admin': return jsonify({'msg': 'Akses ditolak'}), 403
+
+    data = request.get_json()
+    siswa_ids = data.get('siswa_ids', []) # Array ID: [1, 2, 5]
+    status_baru = data.get('status')      # 'Tinggal Kelas' atau 'Aktif'
+
+    if not siswa_ids or not status_baru:
+        return jsonify({'msg': 'Data tidak lengkap'}), 400
+
+    periode_aktif = Periode.query.filter_by(is_active=True).first()
+    if not periode_aktif:
+        return jsonify({'msg': 'Tidak ada periode aktif'}), 400
+
+    try:
+        # Update semua riwayat yang cocok sekaligus
+        updated_count = RiwayatKelas.query.filter(
+            RiwayatKelas.siswa_id.in_(siswa_ids),
+            RiwayatKelas.periode_id == periode_aktif.id
+        ).update({RiwayatKelas.status_akhir: status_baru}, synchronize_session=False)
+
+        db.session.commit()
+        return jsonify({'msg': f'{updated_count} siswa berhasil diubah menjadi {status_baru}'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'msg': 'Error: ' + str(e)}), 500
+    
+
+@admin_siswa_bp.route('/template', methods=['GET'], strict_slashes=False)
+def download_template():
+    # Buat kolom header
+    df = pd.DataFrame(columns=['NISN', 'Nama', 'Kelas', 'Jurusan'])
+    
+    # Tambahkan contoh data dummy agar user paham formatnya
+    df.loc[0] = ['1234567890', 'Contoh Siswa', '10', 'Rekayasa Perangkat Lunak']
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+        
+        # Auto-adjust column width (Opsional, pemanis)
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column('A:A', 15) # NISN
+        worksheet.set_column('B:B', 30) # Nama
+        worksheet.set_column('C:C', 10) # Kelas
+        worksheet.set_column('D:D', 25) # Jurusan
+
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='template_siswa.xlsx'
+    )
+
+# --- [BARU] PREVIEW IMPORT ---
+@admin_siswa_bp.route('/preview', methods=['POST'], strict_slashes=False)
+@jwt_required()
+def preview_import():
+    if 'file' not in request.files:
+        return jsonify({"msg": "File tidak ditemukan"}), 400
+
+    file = request.files['file']
+    try:
+        df = pd.read_excel(file)
+        df = df.where(pd.notnull(df), None) # Handle NaN
+
+        # Validasi Kolom Wajib
+        required_cols = ['NISN', 'Nama', 'Kelas', 'Jurusan']
+        if not all(col in df.columns for col in required_cols):
+            return jsonify({"msg": "Format Excel salah. Pastikan header: NISN, Nama, Kelas, Jurusan"}), 400
+
+        # Ambil semua jurusan untuk validasi nama jurusan
+        all_jurusans = {j.nama_jurusan.lower(): j.nama_jurusan for j in Jurusan.query.all()}
+
+        preview_data = []
+        for index, row in df.iterrows():
+            jurusan_input = str(row.get('Jurusan', '')).strip()
+            jurusan_valid = jurusan_input.lower() in all_jurusans
+            
+            preview_data.append({
+                'nisn': str(row.get('NISN', '')),
+                'nama': row.get('Nama', ''),
+                'kelas': str(row.get('Kelas', '')).replace('.0', ''), # Hapus desimal jika ada
+                'jurusan': jurusan_input,
+                'is_jurusan_valid': jurusan_valid,
+                'status': 'Valid' if jurusan_valid else 'Jurusan Tidak Dikenali'
+            })
+
+        return jsonify(preview_data), 200
+    except Exception as e:
+        return jsonify({"msg": f"Gagal membaca file: {str(e)}"}), 400
+
+# --- [BARU] PROSES IMPORT FINAL ---
+@admin_siswa_bp.route('/import', methods=['POST'], strict_slashes=False)
+@jwt_required()
+def import_siswa():
+    claims = get_jwt()
+    if claims.get('role') != 'admin': return jsonify({'msg': 'Akses ditolak'}), 403
+
+    if 'file' not in request.files:
+        return jsonify({"msg": "File tidak ditemukan"}), 400
+
+    # 1. Cek Periode Aktif (Wajib ada untuk mapping kelas)
+    periode_aktif = Periode.query.filter_by(is_active=True).first()
+    if not periode_aktif:
+        return jsonify({"msg": "Tidak ada Periode Akademik yang aktif. Aktifkan periode dulu!"}), 400
+
+    # 2. Persiapan Data Lookup (Agar tidak query di dalam loop)
+    # Mapping Nama Jurusan (Lower) -> ID Jurusan
+    jurusan_map = {j.nama_jurusan.lower(): j.id for j in Jurusan.query.all()}
+    
+    # List NISN yang sudah ada (untuk skip duplikat)
+    existing_nisns = set(u.username for u in User.query.with_entities(User.username).all())
+
+    file = request.files['file']
+    try:
+        df = pd.read_excel(file)
+        success_count = 0
+        skip_count = 0
+        error_list = []
+
+        hashed_password = generate_password_hash("123456") # Password default
+
+        for index, row in df.iterrows():
+            nisn = str(row.get('NISN', '')).strip().replace('.0', '')
+            nama = str(row.get('Nama', '')).strip()
+            kelas = str(row.get('Kelas', '')).strip().replace('.0', '')
+            jurusan_nama = str(row.get('Jurusan', '')).strip()
+
+            # Validasi Dasar
+            if not nisn or not nama:
+                continue
+
+            # 1. Cek Duplikat NISN
+            if nisn in existing_nisns:
+                skip_count += 1
+                continue # Skip jika siswa sudah ada
+
+            # 2. Cari ID Jurusan
+            jurusan_id = jurusan_map.get(jurusan_nama.lower())
+            if not jurusan_id:
+                error_list.append(f"Baris {index+2}: Jurusan '{jurusan_nama}' tidak ditemukan di sistem.")
+                continue
+
+            # 3. Buat User Siswa
+            new_siswa = User(
+                username=nisn,
+                password=hashed_password,
+                name=nama,
+                role=RoleEnum.siswa,
+                jurusan_id=jurusan_id
+            )
+            db.session.add(new_siswa)
+            db.session.flush() # Flush untuk dapat ID Siswa baru
+
+            # 4. Buat Riwayat Kelas (Periode Aktif)
+            riwayat = RiwayatKelas(
+                siswa_id=new_siswa.id,
+                periode_id=periode_aktif.id,
+                tingkat_kelas=kelas,
+                jurusan_id=jurusan_id,
+                status_akhir='Aktif'
+            )
+            db.session.add(riwayat)
+            
+            # Update cache lokal agar duplikat di file yang sama terdeteksi
+            existing_nisns.add(nisn)
+            success_count += 1
+
+        db.session.commit()
+        
+        msg = f"Berhasil import {success_count} siswa."
+        if skip_count > 0:
+            msg += f" ({skip_count} dilewati karena NISN sudah ada)."
+        if error_list:
+            msg += " Beberapa data gagal karena Jurusan tidak cocok."
+
+        return jsonify({"msg": msg, "errors": error_list}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Gagal Import: " + str(e)}), 500

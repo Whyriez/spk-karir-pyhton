@@ -243,6 +243,7 @@ class Periode(db.Model):
     nama_periode = db.Column(db.String(255), unique=True, nullable=False)
     is_active = db.Column(db.Boolean, default=False)
 
+    is_promotion_period = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
