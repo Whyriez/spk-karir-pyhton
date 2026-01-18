@@ -60,7 +60,7 @@ export default function AdminSiswaIndex() {
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
     const [processing, setProcessing] = useState(false);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    // const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     // Form CRUD
     const initialForm = {
@@ -193,7 +193,7 @@ export default function AdminSiswaIndex() {
 
     // --- CRUD HANDLERS (Standard) ---
     const openModal = (item: any = null) => {
-        setErrors({});
+        // setErrors({});
         if (item) {
             setIsEditMode(true);
             setForm({
