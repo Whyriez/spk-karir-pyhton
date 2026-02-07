@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import PrimaryButton from '@/components/PrimaryButton';
 import apiClient from '@/lib/axios';
 import Header from "../../components/Header.tsx";

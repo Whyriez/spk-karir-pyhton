@@ -193,8 +193,6 @@ export default function BwmInput() {
         }
     };
 
-    const scaleOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-
     if (!isReady) {
         return (
             <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
