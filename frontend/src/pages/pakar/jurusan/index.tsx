@@ -178,7 +178,7 @@ export default function JurusanPakarIndex() {
 
             Toast.fire({
                 icon: 'success',
-                title: 'Data statis berhasil disimpan!'
+                title: `Nilai Jurusan ${selectedJurusan.nama} berhasil disimpan!`
             });
             setShowStaticModal(false);
         } catch (error) {
