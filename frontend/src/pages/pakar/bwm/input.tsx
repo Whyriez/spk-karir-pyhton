@@ -23,6 +23,8 @@ interface Kriteria {
     id: number;
     kode: string;
     nama: string;
+    owner?: string;
+    editable?: boolean;
 }
 
 export default function BwmInput() {
@@ -107,24 +109,31 @@ export default function BwmInput() {
     const validateForm = () => {
         if (!globalBest || !globalWorst) return "Data referensi Best/Worst tidak ditemukan.";
 
-        // 1. Cek Kelengkapan Best-to-Others
-        const missingBest = criteriaList
+        // Ambil hanya kriteria milik user ini
+        const myCriteria = criteriaList.filter(k => k.editable);
+
+        const missingBest = myCriteria
             .filter(k => k.id !== globalBest.id)
             .filter(k => !bestToOthers[k.id]);
 
         if (missingBest.length > 0) {
-            return "Mohon lengkapi semua perbandingan di bagian 'Best-to-Others'.";
+            return `Lengkapi perbandingan Best ke kriteria Anda: ${missingBest.map(k => k.nama).join(', ')}`;
         }
 
-        // 2. Cek Kelengkapan Others-to-Worst
-        const missingWorst = criteriaList
+        const missingWorst = myCriteria
             .filter(k => k.id !== globalWorst.id)
             .filter(k => !othersToWorst[k.id]);
 
         if (missingWorst.length > 0) {
-            return "Mohon lengkapi semua perbandingan di bagian 'Others-to-Worst'.";
+            return `Lengkapi perbandingan kriteria Anda ke Worst: ${missingWorst.map(k => k.nama).join(', ')}`;
         }
 
+        return null;
+    };
+
+    const renderOwnerBadge = (owner?: string) => {
+        if (owner === 'gurubk') return <span className="ml-2 text-[10px] bg-blue-100 text-blue-800 px-1 rounded border border-blue-200">Guru BK</span>;
+        if (owner === 'kaprodi') return <span className="ml-2 text-[10px] bg-purple-100 text-purple-800 px-1 rounded border border-purple-200">Kaprodi</span>;
         return null;
     };
 
@@ -178,9 +187,9 @@ export default function BwmInput() {
     const handleComparisonChange = (type: "best" | "others", targetId: number, value: string) => {
         const valInt = parseInt(value);
         if (type === "best") {
-            setBestToOthers(prev => ({...prev, [targetId]: valInt}));
+            setBestToOthers(prev => ({ ...prev, [targetId]: valInt }));
         } else {
-            setOthersToWorst(prev => ({...prev, [targetId]: valInt}));
+            setOthersToWorst(prev => ({ ...prev, [targetId]: valInt }));
         }
     };
 
@@ -208,18 +217,17 @@ export default function BwmInput() {
                         <div className="flex">
                             <div className="ml-3">
                                 <p className="text-sm text-blue-700">
-                                    Login sebagai: <strong>{userRole === 'gurubk' ? 'Guru BK' : 'Kaprodi'}</strong>. <br/>
+                                    Login sebagai: <strong>{userRole === 'gurubk' ? 'Guru BK' : 'Kaprodi'}</strong>. <br />
                                     Silakan isi perbandingan di bawah ini sesuai kesepakatan FGD.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className={`sticky top-20 z-30 shadow-lg p-4 mb-8 rounded-xl border flex flex-col md:flex-row justify-between items-center transition-all duration-500 backdrop-blur-md ${
-                        crValue === null ? 'bg-white/95 border-gray-200' :
-                        crValue <= 0.1 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-800' : 
-                        'bg-amber-50/95 border-amber-200 text-amber-800'
-                    }`}>
+                    <div className={`sticky top-20 z-30 shadow-lg p-4 mb-8 rounded-xl border flex flex-col md:flex-row justify-between items-center transition-all duration-500 backdrop-blur-md ${crValue === null ? 'bg-white/95 border-gray-200' :
+                        crValue <= 0.1 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-800' :
+                            'bg-amber-50/95 border-amber-200 text-amber-800'
+                        }`}>
                         <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-full ${crValue !== null && crValue <= 0.1 ? 'bg-emerald-100' : 'bg-gray-200'}`}>
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -227,7 +235,7 @@ export default function BwmInput() {
                                 </svg>
                             </div>
                             <div>
-                                <span className="font-bold block text-sm opacity-70">Consistency Ratio (CR)</span>
+                                <span className="font-bold block text-sm opacity-70">Consistency Ratio (Personal)</span>
                                 <span className="text-2xl font-mono font-bold tracking-tight">
                                     {crValue !== null ? crValue.toFixed(4) : '-'}
                                 </span>
@@ -237,14 +245,14 @@ export default function BwmInput() {
                         <div className="text-right mt-2 md:mt-0">
                             {crValue === null && <span className="text-sm text-gray-500 italic">Isi perbandingan untuk melihat CR...</span>}
                             {crValue !== null && crValue > 0.1 && (
-                                 <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white border border-amber-200 text-amber-800 shadow-sm animate-pulse">
-                                     ⚠️ Tidak Konsisten (Target &le; 0.1)
-                                 </span>
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white border border-amber-200 text-amber-800 shadow-sm animate-pulse">
+                                    ⚠️ Tidak Konsisten (Target &le; 0.1)
+                                </span>
                             )}
                             {crValue !== null && crValue <= 0.1 && (
-                                 <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white border border-emerald-200 text-emerald-800 shadow-sm">
-                                     ✅ Konsisten (Baik)
-                                 </span>
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white border border-emerald-200 text-emerald-800 shadow-sm">
+                                    ✅ Konsisten (Baik)
+                                </span>
                             )}
                         </div>
                     </div>
@@ -292,37 +300,39 @@ export default function BwmInput() {
                         {/* --- FORM PERBANDINGAN --- */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                            {/* 1. BEST VS LAINNYA */}
+                            {/* KOLOM BEST TO OTHERS */}
                             <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
                                 <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-100">
-                                    <h3 className="font-bold text-indigo-900 text-lg">Perbandingan Best-to-Others</h3>
-                                    <p className="text-xs text-indigo-600 mt-1">
-                                        Nilai 1 (Sama) s/d 9 (Mutlak Lebih Penting)
-                                    </p>
+                                    <h3 className="font-bold text-indigo-900 text-lg">Best-to-Others</h3>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {sortedKriteriaList.map((k) => {
                                         if (k.id === globalBest?.id) return null;
-                                        const isWorst = k.id === globalWorst?.id;
+
+                                        // LOGIC DISABLE
+                                        const isDisabled = !k.editable;
 
                                         return (
-                                            <div key={k.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isWorst ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-100 hover:border-indigo-200'}`}>
+                                            <div key={k.id} className={`flex items-center justify-between p-3 rounded-lg border ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-gray-700">
-                                                        BEST ➔ {k.nama} <span className="text-xs font-mono text-gray-400 font-normal">({k.kode})</span>
-                                                    </span>
-                                                    {isWorst && <span className="text-[10px] text-indigo-600 font-bold uppercase mt-0.5 tracking-wide">Target ke Worst</span>}
+                                                    <div className="flex items-center">
+                                                        <span className="text-sm font-bold text-gray-700">
+                                                            BEST ➔ {k.nama}
+                                                        </span>
+                                                        {renderOwnerBadge(k.owner)}
+                                                    </div>
+                                                    {isDisabled && <span className="text-[10px] text-red-500 italic">Diisi oleh {k.owner}</span>}
                                                 </div>
                                                 <select
-                                                    className={`w-20 text-center border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 font-bold ${!bestToOthers[k.id] ? 'bg-red-50 border-red-300' : 'bg-white'}`}
+                                                    disabled={isDisabled}
+                                                    className={`w-20 text-center border-gray-300 rounded-md shadow-sm text-sm font-bold 
+                                                        ${isDisabled ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'focus:ring-indigo-500'}
+                                                        ${!isDisabled && !bestToOthers[k.id] ? 'bg-red-50 border-red-300' : ''}`}
                                                     onChange={(e) => handleComparisonChange("best", k.id, e.target.value)}
                                                     value={bestToOthers[k.id] || ""}
-                                                    required
                                                 >
                                                     <option value="">-</option>
-                                                    {scaleOptions.map((val) => (
-                                                        <option key={val} value={val}>{val}</option>
-                                                    ))}
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(val => <option key={val} value={val}>{val}</option>)}
                                                 </select>
                                             </div>
                                         );
@@ -330,41 +340,46 @@ export default function BwmInput() {
                                 </div>
                             </div>
 
-                            {/* 2. LAINNYA VS WORST */}
+                            {/* KOLOM OTHERS TO WORST */}
                             <div className="bg-white rounded-xl shadow-sm border border-rose-100 overflow-hidden">
                                 <div className="bg-rose-50 px-6 py-4 border-b border-rose-100">
-                                    <h3 className="font-bold text-rose-900 text-lg">Perbandingan Others-to-Worst</h3>
-                                    <p className="text-xs text-rose-600 mt-1">
-                                        Nilai 1 (Sama) s/d 9 (Mutlak Lebih Penting)
-                                    </p>
+                                    <h3 className="font-bold text-rose-900 text-lg">Others-to-Worst</h3>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {sortedKriteriaList.map((k) => {
                                         if (k.id === globalWorst?.id) return null;
 
+                                        // LOGIC DISABLE
+                                        const isDisabled = !k.editable;
+
                                         return (
-                                            <div key={k.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100 hover:border-rose-200 transition-colors">
+                                            <div key={k.id} className={`flex items-center justify-between p-3 rounded-lg border ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-gray-700">
-                                                        {k.nama} <span className="text-xs font-mono text-gray-400 font-normal">({k.kode})</span> ➔ WORST
-                                                    </span>
+                                                    <div className="flex items-center">
+                                                        <span className="text-sm font-bold text-gray-700">
+                                                            {k.nama} ➔ WORST
+                                                        </span>
+                                                        {renderOwnerBadge(k.owner)}
+                                                    </div>
+                                                    {isDisabled && <span className="text-[10px] text-red-500 italic">Diisi oleh {k.owner}</span>}
                                                 </div>
                                                 <select
-                                                    className={`w-20 text-center border-gray-300 rounded-md shadow-sm text-sm focus:ring-rose-500 font-bold ${!othersToWorst[k.id] ? 'bg-red-50 border-red-300' : 'bg-white'}`}
+                                                    disabled={isDisabled}
+                                                    className={`w-20 text-center border-gray-300 rounded-md shadow-sm text-sm font-bold 
+                                                        ${isDisabled ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'focus:ring-rose-500'}
+                                                        ${!isDisabled && !othersToWorst[k.id] ? 'bg-red-50 border-red-300' : ''}`}
                                                     onChange={(e) => handleComparisonChange("others", k.id, e.target.value)}
                                                     value={othersToWorst[k.id] || ""}
-                                                    required
                                                 >
                                                     <option value="">-</option>
-                                                    {scaleOptions.map((val) => (
-                                                        <option key={val} value={val}>{val}</option>
-                                                    ))}
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(val => <option key={val} value={val}>{val}</option>)}
                                                 </select>
                                             </div>
                                         );
                                     })}
                                 </div>
                             </div>
+
                         </div>
 
                         {/* TOMBOL SUBMIT */}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { FormEvent } from 'react';
 import PrimaryButton from '@/components/PrimaryButton';
 import apiClient from '@/lib/axios';
@@ -34,45 +34,83 @@ export default function Settings() {
         periode_tanggal: "1", // Default Tgl 1
     });
 
+    // State khusus Logo
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [processing, setProcessing] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const apiBaseUrl = import.meta.env.VITE_API_URL || '';
+
     // Fetch data saat component dimuat
     useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = () => {
         apiClient.get('/settings')
             .then(res => {
                 setData(res.data);
+                console.log(res.data)
+                // Set preview jika ada logo di database
+                if (res.data.school_logo) {
+                    setLogoPreview(`${apiBaseUrl}/${res.data.school_logo}`);
+                }
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                Toast.fire({ icon: 'error', title: 'Gagal memuat pengaturan.' });
                 setLoading(false);
             });
-    }, []);
+    }
+
+    // --- HANDLE UPLOAD LOGO ---
+    const handleLogoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+
+            // Validasi ukuran (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                MySwal.fire('Error', 'Ukuran file maksimal 2MB', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('logo', file);
+
+            setUploadingLogo(true);
+            try {
+                const res = await apiClient.post('/settings/upload-logo', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                // Update preview lokal
+                const newUrl = `${apiBaseUrl}/${res.data.url}`;
+                setLogoPreview(newUrl);
+
+                // Update Context (Agar Navbar berubah otomatis)
+                refreshSettings();
+
+                Toast.fire({ icon: 'success', title: 'Logo berhasil diperbarui!' });
+            } catch (error: any) {
+                MySwal.fire('Gagal', error.response?.data?.msg || 'Gagal upload logo', 'error');
+            } finally {
+                setUploadingLogo(false);
+            }
+        }
+    };
 
     const submit = async (e: FormEvent) => {
         e.preventDefault();
         setProcessing(true);
-
         try {
             await apiClient.post('/settings', data);
-
-            // UPDATE NAVBAR SETELAH SUKSES
             refreshSettings();
-
-            Toast.fire({
-                icon: 'success',
-                title: 'Pengaturan berhasil disimpan!'
-            });
+            Toast.fire({ icon: 'success', title: 'Pengaturan berhasil disimpan!' });
         } catch (error: any) {
-            console.error(error);
-            const msg = error.response?.data?.msg || "Gagal menyimpan pengaturan.";
-            MySwal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: msg
-            });
+            MySwal.fire({ icon: 'error', title: 'Oops...', text: error.response?.data?.msg });
         } finally {
             setProcessing(false);
         }
@@ -111,44 +149,69 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        <form onSubmit={submit} className="p-6 space-y-8">
+                        <div className="p-6 space-y-8">
 
-                            {/* SECTION 1: IDENTITAS */}
-                            <div className="grid grid-cols-1 gap-6">
-                                {/* Nama Sekolah */}
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                                        Nama Sekolah
-                                    </label>
-                                    <div className="relative rounded-md shadow-sm">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                            </svg>
+                            {/* SECTION 0: LOGO UPLOAD (BARU) */}
+                            <div className="flex items-center gap-6 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50/50">
+                                <div className="w-20 h-20 bg-white border rounded-lg flex items-center justify-center overflow-hidden shadow-sm relative">
+                                    {logoPreview ? (
+                                        <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                                    ) : (
+                                        <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    )}
+                                    {uploadingLogo && (
+                                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
                                         </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-700">Logo Sekolah</h4>
+                                    <p className="text-xs text-gray-500 mb-3">Format: PNG, JPG, SVG. Maks 2MB.</p>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleLogoChange}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={uploadingLogo}
+                                        className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                        {uploadingLogo ? 'Mengupload...' : 'Ganti Logo'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <form onSubmit={submit} className="space-y-8">
+                                {/* SECTION 1: IDENTITAS */}
+                                <div className="grid grid-cols-1 gap-6">
+                                    {/* Nama Sekolah */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">
+                                            Nama Sekolah
+                                        </label>
                                         <input
                                             type="text"
-                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                             value={data.nama_sekolah}
                                             onChange={(e) => setData({ ...data, nama_sekolah: e.target.value })}
                                             placeholder="Contoh: SMA Negeri 1 ..."
                                         />
                                     </div>
-                                </div>
 
-                                {/* Zona Waktu */}
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                                        Zona Waktu
-                                    </label>
-                                    <div className="relative rounded-md shadow-sm">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
+                                    {/* Zona Waktu */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">
+                                            Zona Waktu
+                                        </label>
                                         <select
-                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                             value={data.timezone}
                                             onChange={(e) => setData({ ...data, timezone: e.target.value })}
                                         >
@@ -158,76 +221,64 @@ export default function Settings() {
                                         </select>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* SECTION 2: OTOMATISASI */}
-                            <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100 relative overflow-hidden">
-                                {/* Dekorasi Latar */}
-                                <div className="absolute top-0 right-0 -mt-4 -mr-4 text-indigo-100">
-                                    <svg className="w-24 h-24 transform rotate-12" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
-                                    </svg>
-                                </div>
-
-                                <h4 className="font-bold text-indigo-900 mb-1 flex items-center gap-2 relative z-10">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                                    </svg>
-                                    Jadwal Ganti Periode Otomatis
-                                </h4>
-                                <p className="text-xs text-indigo-700 mb-4 relative z-10">
-                                    Sistem akan otomatis membuat <strong>Tahun Ajaran Baru</strong> pada tanggal ini setiap tahunnya.
-                                </p>
-
-                                <div className="flex gap-4 relative z-10">
-                                    {/* TANGGAL */}
-                                    <div className="w-1/3">
-                                        <label className="block text-xs font-bold text-indigo-800 mb-1">
-                                            Tanggal
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            max={31}
-                                            className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
-                                            value={data.periode_tanggal}
-                                            onChange={(e) => setData({ ...data, periode_tanggal: e.target.value })}
-                                        />
+                                {/* SECTION 2: OTOMATISASI */}
+                                <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 -mt-4 -mr-4 text-indigo-100">
+                                        <svg className="w-24 h-24 transform rotate-12" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
+                                        </svg>
                                     </div>
 
-                                    {/* BULAN */}
-                                    <div className="w-2/3">
-                                        <label className="block text-xs font-bold text-indigo-800 mb-1">
-                                            Bulan
-                                        </label>
-                                        <select
-                                            className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
-                                            value={data.periode_bulan}
-                                            onChange={(e) => setData({ ...data, periode_bulan: e.target.value })}
-                                        >
-                                            <option value="1">Januari</option>
-                                            <option value="2">Februari</option>
-                                            <option value="3">Maret</option>
-                                            <option value="4">April</option>
-                                            <option value="5">Mei</option>
-                                            <option value="6">Juni</option>
-                                            <option value="7">Juli (Tahun Ajaran Baru)</option>
-                                            <option value="8">Agustus</option>
-                                            <option value="9">September</option>
-                                            <option value="10">Oktober</option>
-                                            <option value="11">November</option>
-                                            <option value="12">Desember</option>
-                                        </select>
+                                    <h4 className="font-bold text-indigo-900 mb-1 flex items-center gap-2 relative z-10">
+                                        Jadwal Ganti Periode Otomatis
+                                    </h4>
+                                    <p className="text-xs text-indigo-700 mb-4 relative z-10">
+                                        Sistem akan otomatis membuat <strong>Tahun Ajaran Baru</strong> pada tanggal ini setiap tahunnya.
+                                    </p>
+
+                                    <div className="flex gap-4 relative z-10">
+                                        <div className="w-1/3">
+                                            <label className="block text-xs font-bold text-indigo-800 mb-1">Tanggal</label>
+                                            <input
+                                                type="number"
+                                                min={1} max={31}
+                                                className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
+                                                value={data.periode_tanggal}
+                                                onChange={(e) => setData({ ...data, periode_tanggal: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="w-2/3">
+                                            <label className="block text-xs font-bold text-indigo-800 mb-1">Bulan</label>
+                                            <select
+                                                className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
+                                                value={data.periode_bulan}
+                                                onChange={(e) => setData({ ...data, periode_bulan: e.target.value })}
+                                            >
+                                                <option value="1">Januari</option>
+                                                <option value="2">Februari</option>
+                                                <option value="3">Maret</option>
+                                                <option value="4">April</option>
+                                                <option value="5">Mei</option>
+                                                <option value="6">Juni</option>
+                                                <option value="7">Juli (Tahun Ajaran Baru)</option>
+                                                <option value="8">Agustus</option>
+                                                <option value="9">September</option>
+                                                <option value="10">Oktober</option>
+                                                <option value="11">November</option>
+                                                <option value="12">Desember</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex justify-end pt-4 border-t border-gray-100">
-                                <PrimaryButton disabled={processing} className="px-6 py-2 bg-gray-800 hover:bg-gray-700 shadow-lg">
-                                    {processing ? 'Menyimpan...' : 'Simpan Pengaturan'}
-                                </PrimaryButton>
-                            </div>
-                        </form>
+                                <div className="flex justify-end pt-4 border-t border-gray-100">
+                                    <PrimaryButton disabled={processing} className="px-6 py-2 bg-gray-800 hover:bg-gray-700 shadow-lg">
+                                        {processing ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                                    </PrimaryButton>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

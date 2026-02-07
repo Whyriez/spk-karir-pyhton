@@ -11,6 +11,7 @@ interface User {
 
 interface LayoutContextType {
     schoolName: string;
+    appLogo: string | null;
     user: User | null;
     isLoaded: boolean;
     refreshUser: () => void;
@@ -21,15 +22,14 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export function LayoutProvider({children}: { children: ReactNode }) {
     const [schoolName, setSchoolName] = useState('SMK Negeri 1 Gorontalo');
+    const [appLogo, setAppLogo] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [user, setUser] = useState<User | null>(() => {
         const userString = localStorage.getItem('user');
         return userString ? JSON.parse(userString) : null;
     });
 
-    // Kita hapus hasFetched ref agar fetchSettings bisa dipanggil ulang kapan saja
-    // const hasFetched = useRef(false);
-
+    const apiBaseUrl = import.meta.env.VITE_API_URL || '';
     // Method untuk refresh user dari localStorage
     const refreshUser = useCallback(() => {
         const userString = localStorage.getItem('user');
@@ -41,9 +41,21 @@ export function LayoutProvider({children}: { children: ReactNode }) {
     const refreshSettings = useCallback(() => {
         apiClient.get('/settings')
             .then(res => {
+                // Update Nama Sekolah
                 if (res.data.nama_sekolah) {
                     setSchoolName(res.data.nama_sekolah);
-                    console.log('✅ School name updated:', res.data.nama_sekolah);
+                }
+
+                console.log(res.data.school_logo)
+
+                // Update Logo Sekolah
+                if (res.data.school_logo) {
+                    const fullUrl = `${apiBaseUrl}/${res.data.school_logo}`;
+                    console.log(fullUrl)
+                    setAppLogo(fullUrl);
+                    console.log('✅ Logo updated:', fullUrl);
+                } else {
+                    setAppLogo(null);
                 }
             })
             .catch(err => console.error("❌ Gagal memuat pengaturan sekolah", err))
@@ -58,7 +70,7 @@ export function LayoutProvider({children}: { children: ReactNode }) {
     }, [refreshSettings]);
 
     return (
-        <LayoutContext.Provider value={{schoolName, user, isLoaded, refreshUser, refreshSettings}}>
+        <LayoutContext.Provider value={{schoolName, appLogo, user, isLoaded, refreshUser, refreshSettings}}>
             {children}
         </LayoutContext.Provider>
     );

@@ -1,7 +1,13 @@
-from flask import Blueprint, request, jsonify
+import os
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt
+from werkzeug.utils import secure_filename
 from models import db, Setting
 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'svg'}
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    
 settings_bp = Blueprint('settings', __name__)
 
 
@@ -17,6 +23,7 @@ def index():
         'timezone': settings_dict.get('timezone', 'Asia/Jakarta'),
         'periode_bulan': settings_dict.get('periode_bulan', '7'),  # Default Juli
         'periode_tanggal': settings_dict.get('periode_tanggal', '1'),  # Default Tgl 1
+        'school_logo': settings_dict.get('school_logo', None)
     }
 
     return jsonify(response_data)
@@ -50,3 +57,70 @@ def update():
     except Exception as e:
         db.session.rollback()
         return jsonify({'msg': str(e)}), 500
+
+@settings_bp.route('/uploads/<path:filename>')
+def serve_uploads(filename):
+    # Arahkan ke folder backend/static/uploads secara eksplisit
+    upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+    return send_from_directory(upload_folder, filename)
+
+@settings_bp.route('/upload-logo', methods=['POST'])
+@jwt_required()
+def upload_logo():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({'msg': 'Unauthorized'}), 403
+
+    if 'logo' not in request.files:
+        return jsonify({'msg': 'No file part'}), 400
+    
+    file = request.files['logo']
+    
+    if file.filename == '':
+        return jsonify({'msg': 'No selected file'}), 400
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"logo_sekolah_{file.filename}")
+        
+        # Tentukan folder upload
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # --- PERBAIKAN: HAPUS LOGO LAMA ---
+        # Cek apakah ada logo sebelumnya di database
+        existing_setting = Setting.query.filter_by(key='school_logo').first()
+        
+        if existing_setting and existing_setting.value:
+            old_filename = existing_setting.value.split('/')[-1]
+            
+            if old_filename != filename:
+                old_file_path = os.path.join(upload_folder, old_filename)
+                
+                # Hapus file fisik jika ada
+                if os.path.exists(old_file_path):
+                    try:
+                        os.remove(old_file_path)
+                        print(f"Deleted old logo: {old_filename}")
+                    except Exception as e:
+                        print(f"Failed to delete old logo: {e}")
+        # ----------------------------------
+
+        # Simpan File Baru
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+
+        # Simpan URL LOGIS ke database
+        logo_url = f"api/settings/uploads/{filename}"
+        
+        setting = Setting.query.filter_by(key='school_logo').first()
+        if not setting:
+            setting = Setting(key='school_logo', value=logo_url)
+            db.session.add(setting)
+        else:
+            setting.value = logo_url
+            
+        db.session.commit()
+
+        return jsonify({'msg': 'Logo berhasil diupload!', 'url': logo_url}), 200
+    
+    return jsonify({'msg': 'Tipe file tidak diizinkan (Gunakan PNG, JPG, SVG)'}), 400
