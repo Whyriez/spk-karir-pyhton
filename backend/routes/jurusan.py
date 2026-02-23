@@ -105,10 +105,18 @@ def get_static_values(id):
         existing = NilaiStaticJurusan.query.filter_by(jurusan_id=id, kriteria_id=k.id).first()
         val = existing.nilai if existing else 0
 
+        teks_pertanyaan = ""
+        if k.list_pertanyaan and len(k.list_pertanyaan) > 0:
+            # Ambil pertanyaan aktif pertama
+            aktif_pertanyaan = [p for p in k.list_pertanyaan if p.is_active]
+            if aktif_pertanyaan:
+                teks_pertanyaan = aktif_pertanyaan[0].teks
+                
         results.append({
             'kriteria_id': k.id,
             'kode': k.kode,
             'nama': k.nama,
+            'teks_pertanyaan': teks_pertanyaan,
             'nilai': val,
             'skala_maks': k.skala_maks,  # <--- ADDED: Penting untuk validasi frontend
             'tipe_input': k.tipe_input.value if hasattr(k.tipe_input, 'value') else str(k.tipe_input)

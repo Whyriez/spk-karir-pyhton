@@ -1,5 +1,5 @@
 import { type SVGAttributes } from 'react';
-import { useLayout } from '@/contexts/LayoutContext';
+import { useLayout } from '@/contexts/useLayout.ts';
 
 interface ApplicationLogoProps extends SVGAttributes<SVGElement> {
     className?: string;

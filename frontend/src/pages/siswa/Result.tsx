@@ -5,8 +5,6 @@ import SecondaryButton from '@/components/SecondaryButton';
 import apiClient from '@/lib/axios';
 import Header from "../../components/Header.tsx";
 
-// --- IMPORT UNTUK GRAFIK (PROGRESS CHART) ---
-import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     CategoryScale,

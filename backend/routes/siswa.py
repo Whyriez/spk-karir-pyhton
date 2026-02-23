@@ -121,13 +121,17 @@ def save_nilai():
         # A. Loop Input & Simpan ke NilaiSiswa
         for key, val in values.items():
             try:
+                # CEGAH RATA-RATA ANJLOK: Abaikan input yang kosong / tidak diisi
+                if val is None or str(val).strip() == "":
+                    continue
+
                 p_id = int(key)
                 pertanyaan = Pertanyaan.query.get(p_id)
                 if pertanyaan:
                     k_id = pertanyaan.kriteria_id
                     if k_id not in temp_scores: temp_scores[k_id] = []
 
-                    val_float = float(val) if val else 0
+                    val_float = float(val)
                     temp_scores[k_id].append(val_float)
 
                     snapshot_data.append({

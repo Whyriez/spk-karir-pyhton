@@ -4,7 +4,6 @@ import PrimaryButton from '@/components/PrimaryButton';
 import SecondaryButton from '@/components/SecondaryButton';
 import Modal from '@/components/Modal';
 import TextInput from '@/components/TextInput';
-import InputLabel from '@/components/InputLabel';
 import apiClient from "@/lib/axios";
 import Header from "@/components/Header";
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +36,7 @@ interface StaticItem {
     kriteria_id: number;
     kode: string;
     nama: string;
+    teks_pertanyaan?: string;
     nilai: number | string; // Bisa string saat mengetik (misal "0.")
     skala_maks: number;
     tipe_input: string;
@@ -227,40 +227,40 @@ export default function JurusanPakarIndex() {
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Kode</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Jurusan</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
-                                    </tr>
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Kode</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Jurusan</th>
+                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                    {loading ? (
-                                        <tr><td colSpan={3} className="p-8 text-center text-gray-500">Memuat data jurusan Anda...</td></tr>
-                                    ) : data.length === 0 ? (
-                                        <tr><td colSpan={3} className="p-8 text-center text-gray-500 bg-gray-50 rounded italic">
-                                            Anda belum ditautkan ke jurusan manapun. Silakan hubungi Admin.
-                                        </td></tr>
-                                    ) : (
-                                        data.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                        {item.kode}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{item.nama}</td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={() => openStaticModal(item)}
-                                                        className="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm"
-                                                    >
-                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                        Input Nilai
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
+                                        {loading ? (
+                                            <tr><td colSpan={3} className="p-8 text-center text-gray-500">Memuat data jurusan Anda...</td></tr>
+                                        ) : data.length === 0 ? (
+                                            <tr><td colSpan={3} className="p-8 text-center text-gray-500 bg-gray-50 rounded italic">
+                                                Anda belum ditautkan ke jurusan manapun. Silakan hubungi Admin.
+                                            </td></tr>
+                                        ) : (
+                                            data.map((item) => (
+                                                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                            {item.kode}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{item.nama}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button
+                                                            onClick={() => openStaticModal(item)}
+                                                            className="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                            Input Nilai
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -291,31 +291,44 @@ export default function JurusanPakarIndex() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                                 Tidak ada kriteria bertipe "Static Jurusan" yang ditemukan.
-                                <br/>
+                                <br />
                                 <small>Silakan hubungi Admin untuk menambahkan kriteria.</small>
                             </div>
                         ) : (
                             staticItems.map((item, index) => (
-                                <div key={item.kriteria_id} className="group">
-                                    <div className="flex justify-between items-end mb-1">
-                                        <InputLabel value={`${item.kode} - ${item.nama}`} className="text-gray-700" />
-                                        <span className="text-[10px] text-gray-400 group-hover:text-indigo-500 transition-colors">
-                                            Skala Maks: <b>{item.skala_maks}</b>
-                                        </span>
+                                <div key={item.kriteria_id} className="group bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex-1 pr-4">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-0.5 rounded">
+                                                    {item.kode}
+                                                </span>
+                                                <h4 className="font-bold text-gray-800 text-sm">{item.nama}</h4>
+                                            </div>
+                                            {/* Tampilkan Teks Pertanyaan di Sini */}
+                                            {item.teks_pertanyaan && (
+                                                <p className="text-sm text-gray-600 italic">
+                                                    "{item.teks_pertanyaan}"
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100 whitespace-nowrap">
+                                            Skala Maks: <b className="text-gray-700">{item.skala_maks}</b>
+                                        </div>
                                     </div>
-                                    <div className="relative">
+                                    <div className="relative mt-3">
                                         <TextInput
                                             type="number"
                                             value={item.nilai}
                                             onChange={(e) => handleStaticChange(index, e.target.value)}
-                                            className="w-full pl-3 pr-16 font-bold text-gray-800"
-                                            placeholder="0"
+                                            className="w-full pl-3 pr-16 font-bold text-gray-800 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Masukkan Nilai..."
                                             min={0}
                                             max={item.skala_maks}
                                             step="0.01"
                                         />
                                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                            <span className="text-gray-400 text-xs">/ {item.skala_maks}</span>
+                                            <span className="text-gray-400 text-xs bg-white px-1">/ {item.skala_maks}</span>
                                         </div>
                                     </div>
                                 </div>

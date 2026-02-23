@@ -1,10 +1,11 @@
-import  { useEffect, useState } from 'react';
-import  type { FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/lib/axios';
 import Header from "../../components/Header.tsx";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import type { AxiosError } from 'node_modules/axios/index.d.cts';
 
 // --- KONFIGURASI SWEETALERT ---
 const MySwal = withReactContent(Swal);
@@ -38,6 +39,12 @@ interface KriteriaItem {
     opsi_pilihan?: { val: string | number; label: string }[];
     value?: string | number;
     skala_maks: number;
+}
+
+interface LikertOption {
+    val: string | number;
+    label: string;
+    desc?: string;
 }
 
 export default function InputDataSiswa() {
@@ -124,7 +131,7 @@ export default function InputDataSiswa() {
 
             // Jika kosong, biarkan kosong (untuk bisa hapus)
             if (value === '') {
-                setValues(prev => ({...prev, [pertanyaanId]: ''}));
+                setValues(prev => ({ ...prev, [pertanyaanId]: '' }));
                 return;
             }
 
@@ -142,7 +149,7 @@ export default function InputDataSiswa() {
             if (!isNaN(numVal) && numVal < 0) return;
         }
 
-        setValues(prev => ({...prev, [pertanyaanId]: value}));
+        setValues(prev => ({ ...prev, [pertanyaanId]: value }));
     };
 
     const submit = async (e: FormEvent) => {
@@ -165,7 +172,7 @@ export default function InputDataSiswa() {
         setProcessing(true);
 
         try {
-            await apiClient.post('/siswa/save', {values});
+            await apiClient.post('/siswa/save', { values });
 
             await MySwal.fire({
                 icon: 'success',
@@ -177,9 +184,12 @@ export default function InputDataSiswa() {
 
             navigate('/siswa/result');
 
-        } catch (error: any) {
-            console.error(error);
-            const errMsg = error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data.';
+        } catch (error: unknown) {
+            const err = error as AxiosError<{ message: string }>;
+
+            const errMsg =
+                err.response?.data?.message ||
+                'Terjadi kesalahan saat menyimpan data.';
 
             MySwal.fire({
                 icon: 'error',
@@ -191,8 +201,58 @@ export default function InputDataSiswa() {
         }
     };
 
+    const allUniqueOptions: { val: string | number, label: string, desc?: string }[] = [];
+
+    kriterias.forEach(k => {
+        // HANYA AMBIL DARI TIPE LIKERT (Abaikan Select agar tidak nyampur seperti < 1 Juta)
+        if (k.tipe_input === 'likert') {
+            let opts: LikertOption[] = [];
+
+            if (k.opsi_pilihan) {
+                let parsed = k.opsi_pilihan;
+                if (typeof parsed === 'string') {
+                    try { parsed = JSON.parse(parsed); } catch (e) { }
+                }
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    opts = parsed;
+                }
+            }
+
+            // FALLBACK DEFAULT JIKA PAKAR BELUM SET OPSI (Ini solusi agar STS default tidak hilang)
+            if (opts.length === 0) {
+                opts = [
+                    { val: 1, label: 'STS', desc: 'Sangat Tidak Setuju' },
+                    { val: 2, label: 'TS', desc: 'Tidak Setuju' },
+                    { val: 3, label: 'N', desc: 'Netral / Ragu-ragu' },
+                    { val: 4, label: 'S', desc: 'Setuju' },
+                    { val: 5, label: 'SS', desc: 'Sangat Setuju' }
+                ];
+            }
+
+            opts.forEach((opt: LikertOption) => {
+                const isExist = allUniqueOptions.find(
+                    x => x.label.toUpperCase() === opt.label.toUpperCase() && x.val === opt.val
+                );
+                if (!isExist) {
+                    allUniqueOptions.push({
+                        val: opt.val,
+                        label: opt.label,
+                        desc: opt.desc
+                    });
+                }
+            });
+        }
+    });
+
+    const groupedOptions: Record<string, typeof allUniqueOptions> = {};
+    allUniqueOptions.forEach(opt => {
+        const v = String(opt.val);
+        if (!groupedOptions[v]) groupedOptions[v] = [];
+        groupedOptions[v].push(opt);
+    });
+
     // 4. RENDER INPUT FIELD
-    const renderInputField = (k: KriteriaItem, p: PertanyaanItem) => {
+    const renderInputField = (k: KriteriaItem, p: PertanyaanItem, isRequired: boolean) => {
         const inputKey = p.id;
         const val = values[inputKey] !== undefined ? values[inputKey] : '';
 
@@ -209,7 +269,7 @@ export default function InputDataSiswa() {
                         onChange={(e) => handleChange(inputKey, e.target.value, k.skala_maks)}
                         min={0}
                         max={k.skala_maks}
-                        required
+                        required={isRequired} // <-- Gunakan variabel penentu
                     />
                     <span className="text-xs text-gray-500 font-mono whitespace-nowrap bg-gray-100 px-2 py-1 rounded">
                         Max: {k.skala_maks}
@@ -246,20 +306,38 @@ export default function InputDataSiswa() {
 
         // C. Tipe LIKERT
         if (k.tipe_input === 'likert') {
-            const likertOptions = [
-                {val: 1, label: 'STS'}, {val: 2, label: 'TS'},
-                {val: 3, label: 'N'}, {val: 4, label: 'S'}, {val: 5, label: 'SS'}
-            ];
+            // 1. Coba ambil dari database dulu
+            let likertOptions: LikertOption[] = [];
+            if (k.opsi_pilihan) {
+                let parsedOptions = k.opsi_pilihan;
+                if (typeof parsedOptions === 'string') {
+                    try { parsedOptions = JSON.parse(parsedOptions); } catch (e) { }
+                }
+                if (Array.isArray(parsedOptions) && parsedOptions.length > 0) {
+                    likertOptions = parsedOptions;
+                }
+            }
+
+            // 2. Jika di database kosong, gunakan nilai DEFAULT ini
+            if (likertOptions.length === 0) {
+                likertOptions = [
+                    { val: 1, label: 'STS' }, { val: 2, label: 'TS' },
+                    { val: 3, label: 'N' }, { val: 4, label: 'S' }, { val: 5, label: 'SS' }
+                ];
+            }
+
             const currentValue = Number(val);
 
+            const gridCols = `grid-cols-${likertOptions.length}`;
+
             return (
-                <div className="grid grid-cols-5 gap-2 mt-2 md:w-3/4">
-                    {likertOptions.map(opt => (
+                <div className={`grid ${gridCols} gap-2 mt-2 md:w-3/4`}>
+                    {likertOptions.map((opt: LikertOption) => (
                         <label key={opt.val} className={`
                             cursor-pointer border rounded-md p-2 text-center transition-all flex flex-col items-center justify-center
                             ${currentValue === opt.val
-                            ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-lg transform scale-105'
-                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
+                                ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-lg transform scale-105'
+                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
                         `}>
                             <input
                                 type="radio"
@@ -268,7 +346,6 @@ export default function InputDataSiswa() {
                                 checked={currentValue === opt.val}
                                 onChange={(e) => handleChange(inputKey, e.target.value)}
                                 className="sr-only"
-                                required
                             />
                             <div className="font-bold text-lg">{opt.val}</div>
                             <div className="text-[10px] uppercase font-semibold">{opt.label}</div>
@@ -323,7 +400,7 @@ export default function InputDataSiswa() {
                                                                 <label className="block text-sm text-gray-600 mb-1">
                                                                     <span className="font-medium mr-1">{index + 1}.</span> {p.teks}
                                                                 </label>
-                                                                {renderInputField(k, p)}
+                                                                {renderInputField(k, p, index === 0)}
                                                             </div>
                                                         ))
                                                     ) : (
@@ -337,46 +414,52 @@ export default function InputDataSiswa() {
                                     </div>
 
                                     {/* KOLOM KANAN: PENJELASAN (LEGEND) */}
-                                    <div className="md:w-1/3">
-                                        <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 sticky top-4">
-                                            <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor"
-                                                     viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                </svg>
-                                                Panduan Pengisian
-                                            </h4>
+                                    <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 sticky top-4">
+                                        <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Panduan Pengisian
+                                        </h4>
 
-                                            <div className="text-xs text-blue-800 mb-4">
-                                                <p className="mb-2 font-semibold">Keterangan Skala Penilaian:</p>
-                                                <ul className="space-y-2 pl-1">
-                                                    <li className="flex items-center gap-2">
-                                                        <span className="bg-white border border-blue-200 px-2 py-1 rounded font-bold w-10 text-center text-blue-600">STS</span>
-                                                        <span>Sangat Tidak Setuju (1)</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <span className="bg-white border border-blue-200 px-2 py-1 rounded font-bold w-10 text-center text-blue-600">TS</span>
-                                                        <span>Tidak Setuju (2)</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <span className="bg-white border border-blue-200 px-2 py-1 rounded font-bold w-10 text-center text-blue-600">N</span>
-                                                        <span>Netral / Ragu-ragu (3)</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <span className="bg-white border border-blue-200 px-2 py-1 rounded font-bold w-10 text-center text-blue-600">S</span>
-                                                        <span>Setuju (4)</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <span className="bg-white border border-blue-200 px-2 py-1 rounded font-bold w-10 text-center text-blue-600">SS</span>
-                                                        <span>Sangat Setuju (5)</span>
-                                                    </li>
-                                                </ul>
-                                            </div>
+                                        <div className="text-xs text-blue-800 mb-4">
+                                            <p className="mb-3 font-semibold">Keterangan Skala Penilaian:</p>
 
-                                            <div className="text-[10px] text-blue-600 border-t border-blue-200 pt-2 italic">
-                                                *Gunakan panduan ini untuk mengisi bagian Kuesioner Minat di bawah.
-                                            </div>
+                                            {Object.keys(groupedOptions).length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {/* Looping per Angka Nilai (1, 2, 3...) */}
+                                                    {Object.keys(groupedOptions).sort((a, b) => Number(a) - Number(b)).map(val => (
+                                                        <div key={val} className="flex items-start gap-2 border-b border-blue-100/50 pb-2 last:border-0 last:pb-0">
+
+                                                            {/* KOTAK BIRU ANGKA */}
+                                                            <div className="bg-blue-600 text-white font-bold w-6 h-6 flex items-center justify-center rounded shrink-0 mt-0.5 shadow-sm">
+                                                                {val}
+                                                            </div>
+
+                                                            {/* DAFTAR SINGKATAN & KEPANJANGAN DI ANGKA TERSEBUT */}
+                                                            <div className="flex flex-col gap-1.5 w-full">
+                                                                {groupedOptions[val].map((opt, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <span className="bg-white border border-blue-200 px-2 py-0.5 rounded text-[10px] font-bold min-w-[3.5rem] text-center text-blue-700 uppercase shadow-sm">
+                                                                            {opt.label}
+                                                                        </span>
+                                                                        <span className="text-gray-700 font-medium leading-tight">
+                                                                            {opt.desc ? opt.desc : opt.label}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-500 italic">Belum ada panduan kuesioner.</p>
+                                            )}
+                                        </div>
+
+                                        <div className="text-[10px] text-blue-600 border-t border-blue-200 pt-3 italic">
+                                            *Gunakan panduan ini untuk mengisi bagian Kuesioner Minat di bawah.
                                         </div>
                                     </div>
                                 </div>
@@ -403,7 +486,7 @@ export default function InputDataSiswa() {
                                                             <p className="text-sm text-gray-700 mb-2">
                                                                 <span className="font-bold mr-1">{index + 1}.</span> {p.teks}
                                                             </p>
-                                                            {renderInputField(k, p)}
+                                                            {renderInputField(k, p, true)}
                                                         </div>
                                                     ))
                                                 ) : (

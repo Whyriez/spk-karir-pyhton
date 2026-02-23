@@ -55,6 +55,12 @@ interface DashboardData {
         keputusan: string;
         tanggal: string;
     }>;
+    trend_data?: {
+        labels: string[];
+        studi: number[];
+        kerja: number[];
+        wirausaha: number[];
+    };
     // Data Siswa
     history?: HistoryItem[];
 }
@@ -150,7 +156,7 @@ export default function Dashboard() {
             ],
         };
 
-        const lineOptions = {
+        const lineOptions: any = {
             responsive: true,
             maintainAspectRatio: false,
             interaction: {
@@ -364,43 +370,79 @@ export default function Dashboard() {
 
     // Ambil data admin, pastikan tidak error jika null (safety check)
     const stats = data.stats || {
-        total_siswa: 0,
-        sudah_mengisi: 0,
-        belum_mengisi: 0,
-        rekomendasi_studi: 0,
-        rekomendasi_kerja: 0,
-        rekomendasi_wirausaha: 0
+        total_siswa: 0, sudah_mengisi: 0, belum_mengisi: 0,
+        rekomendasi_studi: 0, rekomendasi_kerja: 0, rekomendasi_wirausaha: 0
     };
     const chart_distribution = data.chart_distribution || {labels: [], data: [], colors: []};
     const rekapitulasi = data.rekapitulasi || [];
+    const trend_data = data.trend_data || { labels: [], studi: [], kerja: [], wirausaha: [] };
 
+    // --- CONFIG PIE/DOUGHNUT CHART ---
     const doughnutData = {
         labels: chart_distribution.labels.length ? chart_distribution.labels : ['Studi', 'Bekerja', 'Wirausaha'],
         datasets: [{
             data: chart_distribution.data.length ? chart_distribution.data : [0, 0, 0],
             backgroundColor: chart_distribution.colors.length ? chart_distribution.colors : ['#4f46e5', '#10b981', '#f97316'],
-            borderWidth: 0,
-            hoverOffset: 4,
+            borderWidth: 0, hoverOffset: 4,
         }],
     };
-
-    const doughnutOptions = {
+    const doughnutOptions: any = {
         maintainAspectRatio: false,
         plugins: {
             legend: {display: false},
             tooltip: {
                 callbacks: {
                     label: function (context: any) {
-                        const label = context.label || '';
                         const value = context.raw || 0;
                         const total = context.chart._metasets[context.datasetIndex].total;
-                        const percentage = Math.round((value / total) * 100) + '%';
-                        return `${label}: ${value} Siswa (${percentage})`;
+                        const percentage = total > 0 ? Math.round((value / total) * 100) + '%' : '0%';
+                        return `${context.label}: ${value} Siswa (${percentage})`;
                     }
                 }
             }
         },
         cutout: '70%',
+    };
+
+    // --- CONFIG LINE CHART (TREN TAHUNAN ADMIN) ---
+    const adminLineData = {
+        labels: trend_data.labels,
+        datasets: [
+            {
+                label: "Studi",
+                data: trend_data.studi,
+                borderColor: "rgb(79, 70, 229)", backgroundColor: "rgba(79, 70, 229, 0.2)",
+                tension: 0.3, fill: true, pointRadius: 5, pointHoverRadius: 7,
+            },
+            {
+                label: "Kerja",
+                data: trend_data.kerja,
+                borderColor: "rgb(16, 185, 129)", backgroundColor: "rgba(16, 185, 129, 0.2)",
+                tension: 0.3, fill: true, pointRadius: 5, pointHoverRadius: 7,
+            },
+            {
+                label: "Wirausaha",
+                data: trend_data.wirausaha,
+                borderColor: "rgb(249, 115, 22)", backgroundColor: "rgba(249, 115, 22, 0.2)",
+                tension: 0.3, fill: true, pointRadius: 5, pointHoverRadius: 7,
+            }
+        ],
+    };
+    const adminLineOptions: any = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index' as const, intersect: false },
+        plugins: {
+            legend: { position: 'top' as const },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }, // Set interval ke angka bulat (jumlah siswa tidak mungkin desimal)
+                grid: { borderDash: [5, 5] }
+            },
+            x: { grid: { display: false } }
+        }
     };
 
     return (
@@ -524,6 +566,28 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                                </svg>
+                                Tren Orientasi Karir Siswa per Periode Ajaran
+                            </h3>
+                            <span className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full font-bold">Data Tahunan</span>
+                        </div>
+                        
+                        {trend_data.labels.length > 0 ? (
+                            <div className="h-80 w-full">
+                                <Line options={adminLineOptions} data={adminLineData} />
+                            </div>
+                        ) : (
+                            <div className="h-64 flex flex-col items-center justify-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-gray-400">
+                                <p>Belum ada data periode yang direkam.</p>
+                            </div>
+                        )}
+                    </div>
+
                     {/* TABLE REKAPITULASI */}
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -590,7 +654,16 @@ export default function Dashboard() {
 // SUB COMPONENTS
 // ----------------------------------------------------------------------
 
-function StatCard({title, value, color, textColor, icon}: any) {
+interface StatCardProps {
+    title: string;
+    value: number | string;
+    color: string;
+    textColor: string;
+    icon: React.ReactNode;
+}
+
+
+function StatCard({title, value, color, textColor, icon}: StatCardProps) {
     return (
         <div
             className={`p-6 rounded-lg shadow-sm border border-gray-100 bg-white flex items-center justify-between transition hover:shadow-md`}>
@@ -603,7 +676,14 @@ function StatCard({title, value, color, textColor, icon}: any) {
     );
 }
 
-function LegendItem({color, label, value, total}: any) {
+interface LegendItemProps {
+    color: string;
+    label: string;
+    value: number;
+    total: number;
+}
+
+function LegendItem({color, label, value, total}: LegendItemProps) {
     const percent = total > 0 ? Math.round((value / total) * 100) : 0;
     return (
         <div className="flex items-center justify-between text-sm w-full group">
@@ -632,7 +712,9 @@ function BadgeKeputusan({label}: { label: string }) {
     );
 }
 
-function getMaxLabel(stats: any) {
+type StatsType = DashboardData['stats'];
+
+function getMaxLabel(stats: StatsType): string {
     if (!stats) return "-";
     const maxVal = Math.max(stats.rekomendasi_studi, stats.rekomendasi_kerja, stats.rekomendasi_wirausaha);
     if (maxVal === 0) return "-";

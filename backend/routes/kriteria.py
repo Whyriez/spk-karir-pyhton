@@ -133,11 +133,6 @@ def update(id):
             if 'kode' in data: kriteria.kode = data['kode']
             if 'nama' in data: kriteria.nama = data['nama']
             if 'tipe_input' in data: kriteria.tipe_input = data['tipe_input']
-
-            # UPDATE OPSI PILIHAN
-            if 'opsi_pilihan' in data:
-                kriteria.opsi_pilihan = data['opsi_pilihan']  # <--- TAMBAHAN
-
             if 'atribut' in data: kriteria.atribut = data['atribut']
             if 'kategori' in data: kriteria.kategori = data['kategori']
             if 'sumber_nilai' in data: kriteria.sumber_nilai = data['sumber_nilai']
@@ -146,6 +141,10 @@ def update(id):
             if 'target_jalur' in data: kriteria.target_jalur = data['target_jalur']
             if 'skala_maks' in data: kriteria.skala_maks = float(data['skala_maks'])
             if 'jalur_reverse' in data: kriteria.jalur_reverse = data['jalur_reverse'] or None
+
+        # Admin & Pakar boleh edit opsi pilihan dan pertanyaan
+        if 'opsi_pilihan' in data:
+            kriteria.opsi_pilihan = data['opsi_pilihan']
 
         # Admin & Pakar boleh edit pertanyaan (logic pertanyaan tetap sama)
         if 'list_pertanyaan' in data:

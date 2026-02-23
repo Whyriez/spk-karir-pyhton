@@ -13,7 +13,22 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export const ProgressChart = ({ data }: { data: any }) => {
+interface Dataset {
+  label: string;
+  data: number[];
+  color: string;
+}
+
+interface ProgressChartData {
+  labels: string[];
+  datasets: Dataset[];
+}
+
+interface Props {
+  data: ProgressChartData;
+}
+
+export const ProgressChart = ({ data }: Props) => {
   const options = {
     responsive: true,
     plugins: {
@@ -27,7 +42,7 @@ export const ProgressChart = ({ data }: { data: any }) => {
 
   const chartData = {
     labels: data.labels,
-    datasets: data.datasets.map((ds: any) => ({
+    datasets: data.datasets.map((ds) => ({
       ...ds,
       borderColor: ds.color,
       backgroundColor: ds.color,

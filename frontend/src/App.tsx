@@ -1,6 +1,5 @@
 import type {JSX} from 'react';
 import {BrowserRouter as Router, Routes, Route, Navigate, useLocation} from 'react-router-dom';
-import {LayoutProvider} from '@/contexts/LayoutContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
@@ -26,6 +25,7 @@ import Welcome from "./pages/Welcome.tsx";
 import AuthenticatedLayout from "./Layouts/AuthenticatedLayout.tsx";
 import PakarIndex from "./pages/admin/pakar";
 import SimulationIndex from "./pages/admin/simulation";
+import { LayoutProvider } from './contexts/LayoutProvider.tsx';
 
 
 

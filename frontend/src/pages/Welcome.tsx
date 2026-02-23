@@ -2,19 +2,23 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '@/lib/axios';
 
+interface User {
+    name: string;
+    role: string;
+    email?: string;
+    jenis_pakar?: string;
+}
+
 export default function Welcome() {
-    const [user, setUser] = useState<any>(null);
+    const [user] = useState<User | null>(() => {
+        const userString = localStorage.getItem('user');
+        return userString ? JSON.parse(userString) : null;
+    });
     const [schoolName, setSchoolName] = useState('SMK Negeri 1 Gorontalo'); // Default value
 
     useEffect(() => {
         // 1. Set Title Browser
         document.title = "SPK Penentuan Karir SMK";
-
-        // 2. Cek Status Login dari LocalStorage
-        const userString = localStorage.getItem('user');
-        if (userString) {
-            setUser(JSON.parse(userString));
-        }
 
         // 3. Ambil Nama Sekolah dari Backend API
         apiClient.get('/settings')

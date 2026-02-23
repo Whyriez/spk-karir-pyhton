@@ -16,13 +16,9 @@ def get_stats():
     if user.role in [RoleEnum.admin, RoleEnum.pakar]:
         # 1. Hitung Statistik Utama
         total_siswa = User.query.filter_by(role=RoleEnum.siswa).count()
-
-        # Hitung siswa yg sudah ada di hasil rekomendasi (distinct)
         sudah_mengisi = db.session.query(func.count(func.distinct(HasilRekomendasi.siswa_id))).scalar()
-
         belum_mengisi = total_siswa - sudah_mengisi
 
-        # Hitung per Kategori Keputusan
         rek_studi = HasilRekomendasi.query.filter_by(keputusan_terbaik='Melanjutkan Studi').count()
         rek_kerja = HasilRekomendasi.query.filter_by(keputusan_terbaik='Bekerja').count()
         rek_wirausaha = HasilRekomendasi.query.filter_by(keputusan_terbaik='Berwirausaha').count()
@@ -31,20 +27,15 @@ def get_stats():
         chart_distribution = {
             'labels': ['Melanjutkan Studi', 'Bekerja', 'Berwirausaha'],
             'data': [rek_studi, rek_kerja, rek_wirausaha],
-            'colors': ['#4F46E5', '#10B981', '#F97316']  # Indigo, Emerald, Orange
+            'colors': ['#4F46E5', '#10B981', '#F97316']
         }
 
         # 3. Rekapitulasi Terbaru (5 Data Terakhir)
         recent_results = HasilRekomendasi.query.order_by(HasilRekomendasi.tanggal_hitung.desc()).limit(5).all()
-
         rekapitulasi = []
         for res in recent_results:
-            # Cari nilai max manual karena Python
             nilai_optima = max(res.skor_studi or 0, res.skor_kerja or 0, res.skor_wirausaha or 0)
-
-            # Ambil nama jurusan (handling relasi null)
             jurusan_nama = res.siswa.jurusan.nama_jurusan if res.siswa.jurusan else '-'
-
             rekapitulasi.append({
                 'id': res.id,
                 'nama': res.siswa.name,
@@ -54,6 +45,35 @@ def get_stats():
                 'tanggal': res.tanggal_hitung
             })
 
+        # ==========================================
+        # 4. TAMBAHAN: DATA TREN PER PERIODE (TAHUN)
+        # ==========================================
+        periodes = Periode.query.order_by(Periode.id.asc()).all()
+        trend_labels = []
+        trend_studi = []
+        trend_kerja = []
+        trend_wirausaha = []
+
+        for p in periodes:
+            trend_labels.append(p.nama_periode)
+            
+            # Hitung jumlah siswa per keputusan di periode tersebut
+            c_studi = HasilRekomendasi.query.filter(HasilRekomendasi.periode_id == p.id, HasilRekomendasi.keputusan_terbaik.like('%Studi%')).count()
+            c_kerja = HasilRekomendasi.query.filter(HasilRekomendasi.periode_id == p.id, HasilRekomendasi.keputusan_terbaik.like('%Bekerja%')).count()
+            c_wirausaha = HasilRekomendasi.query.filter(HasilRekomendasi.periode_id == p.id, HasilRekomendasi.keputusan_terbaik.like('%Wirausaha%')).count()
+            
+            trend_studi.append(c_studi)
+            trend_kerja.append(c_kerja)
+            trend_wirausaha.append(c_wirausaha)
+
+        trend_data = {
+            'labels': trend_labels,
+            'studi': trend_studi,
+            'kerja': trend_kerja,
+            'wirausaha': trend_wirausaha
+        }
+
+        # Tambahkan trend_data ke return jsonify
         return jsonify({
             'role': user.role.value,
             'stats': {
@@ -65,7 +85,8 @@ def get_stats():
                 'rekomendasi_wirausaha': rek_wirausaha
             },
             'chart_distribution': chart_distribution,
-            'rekapitulasi': rekapitulasi
+            'rekapitulasi': rekapitulasi,
+            'trend_data': trend_data  # <--- RETURN TREN DISINI
         })
 
     # --- LOGIC SISWA (History Grafik) ---
