@@ -202,12 +202,41 @@ def get_result():
     # Cari Alumni Relevan
     alumni_list = []
     user = User.query.get(current_user_id)
-    if user.jurusan and hasil:
-        status_keyword = 'Kuliah' if 'Studi' in hasil.keputusan_terbaik else (
-            'Bekerja' if 'Kerja' in hasil.keputusan_terbaik else 'Wirausaha')
-        alumnis = Alumni.query.filter(Alumni.major.ilike(f"%{user.jurusan.nama_jurusan}%"),
-                                      Alumni.status.ilike(f"%{status_keyword}%")).limit(5).all()
-        alumni_list = [{'name': a.name, 'batch': a.batch, 'status': a.status} for a in alumnis]
+    if user and user.jurusan and hasil:
+        keputusan = (hasil.keputusan_terbaik or '').lower()
+        if 'studi' in keputusan or 'kuliah' in keputusan:
+            status_keyword = 'kuliah'
+        elif 'kerja' in keputusan:
+            status_keyword = 'kerja'
+        elif 'wirausaha' in keputusan or 'usaha' in keputusan:
+            status_keyword = 'wirausaha'
+        else:
+            status_keyword = None
+
+        # Normalisasi jurusan (ambil kata kunci utama)
+        jurusan_keyword = user.jurusan.nama_jurusan.lower()
+
+        query = Alumni.query
+
+        if jurusan_keyword:
+            query = query.filter(
+                Alumni.major.ilike(f"%{jurusan_keyword}%")
+            )
+
+        if status_keyword:
+            query = query.filter(
+                Alumni.status.ilike(f"%{status_keyword}%")
+            )
+
+        alumnis = query.order_by(Alumni.batch.desc()).limit(5).all()
+        alumni_list = [
+            {
+                'name': a.name,
+                'batch': a.batch,
+                'status': a.status
+            }
+            for a in alumnis
+        ]
 
     return jsonify({
         'hasil': {
