@@ -308,7 +308,7 @@ export default function InputDataSiswa() {
                                     {/* KOLOM KIRI: INPUT FORM */}
                                     <div className="flex-1 space-y-6">
                                         <h3 className="text-lg font-bold mb-4 text-gray-800 border-b border-gray-100 pb-2">
-                                            1. Data Akademik & Ekonomi
+                                            1. Data Akademik
                                         </h3>
                                         <div className="space-y-4">
                                             {listAkademik.map(k => (

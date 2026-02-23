@@ -80,8 +80,8 @@ export default function Login() {
         <div
             className="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gradient-to-br from-blue-500 to-indigo-700">
             {/* Logo atau Judul */}
-            <div className="text-white text-2xl font-bold mb-4">
-                SPK KARIR
+            <div className="text-white text-2xl text-center font-bold mb-4">
+                Sistem Pendukung Keputusan <br /> Penentuan Karir {schoolName}
             </div>
 
             <div className="w-full sm:max-w-md mt-6 px-8 py-10 bg-white shadow-2xl overflow-hidden sm:rounded-xl">

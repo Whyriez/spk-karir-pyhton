@@ -41,7 +41,6 @@ interface SnapshotItem {
 
 export default function ResultSiswa() {
     const [data, setData] = useState<any>(null);
-    const [chartData, setChartData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isAlumniModalOpen, setIsAlumniModalOpen] = useState(false);
 
@@ -60,8 +59,6 @@ export default function ResultSiswa() {
                 const resResult = await apiClient.get(resultUrl);
                 setData(resResult.data);
 
-                const resChart = await apiClient.get('/monitoring/chart-data');
-                setChartData(resChart.data);
             } catch (err) {
                 console.error("Gagal mengambil data:", err);
             } finally {
@@ -148,32 +145,6 @@ export default function ResultSiswa() {
         description = 'Anda memiliki jiwa entrepreneurship yang tinggi didukung dengan kesiapan modal yang memadai untuk merintis usaha sendiri.';
     }
 
-    // --- KONFIGURASI GRAFIK ---
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom' as const },
-            tooltip: { mode: 'index' as const, intersect: false },
-        },
-        scales: {
-            y: { min: 0, max: 1, title: { display: true, text: 'Nilai Optimasi MOORA' } }
-        },
-    };
-
-    const formattedChartData = chartData ? {
-        labels: chartData.labels,
-        datasets: chartData.datasets.map((ds: any) => ({
-            label: ds.label,
-            data: ds.data,
-            borderColor: ds.color,
-            backgroundColor: ds.color + '20',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 5,
-        }))
-    } : null;
-
     return (
         <div>
             <Header><h2 className="font-semibold text-xl text-gray-800 leading-tight">Laporan Hasil Analisis Karir</h2></Header>
@@ -200,23 +171,6 @@ export default function ResultSiswa() {
                                     {keputusan.toUpperCase()}
                                 </div>
                                 <p className="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto">{description}</p>
-                            </div>
-
-                            {/* --- PROGRESS CHART: MONITORING LONGITUDINAL  --- */}
-                            <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
-                                <div className="flex items-center gap-2 mb-6 pb-2 border-b">
-                                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                                    </svg>
-                                    <h3 className="font-bold text-gray-800">Tren Perkembangan Minat (Kelas 10 - 12)</h3>
-                                </div>
-                                <div className="h-72">
-                                    {formattedChartData ? (
-                                        <Line options={chartOptions} data={formattedChartData} />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-full text-gray-400 italic">Data histori belum cukup untuk menampilkan tren.</div>
-                                    )}
-                                </div>
                             </div>
 
                             {/* BAGIAN BARU: RIWAYAT JAWABAN (DETAIL SNAPSHOT) */}

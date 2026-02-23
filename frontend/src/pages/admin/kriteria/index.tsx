@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import type {FormEvent} from 'react';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import Modal from '@/components/Modal';
 import SecondaryButton from '@/components/SecondaryButton';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -64,7 +64,7 @@ export default function KriteriaIndex() {
         kode: '',
         nama: '',
         atribut: 'benefit',
-        kategori: 'kuesioner',
+        kategori: '',
         tipe_input: 'likert',
         sumber_nilai: 'input_siswa',
         penanggung_jawab: 'gurubk',
@@ -88,7 +88,7 @@ export default function KriteriaIndex() {
             setData(res.data.data);
         } catch (err) {
             console.error(err);
-            Toast.fire({icon: 'error', title: 'Gagal memuat data kriteria.'});
+            Toast.fire({ icon: 'error', title: 'Gagal memuat data kriteria.' });
         } finally {
             setLoading(false);
         }
@@ -105,7 +105,7 @@ export default function KriteriaIndex() {
         if (targets.kerja) active.push('kerja');
         if (targets.wirausaha) active.push('wirausaha');
         const val = (active.length === 3) ? 'all' : active.join(',');
-        setForm(f => ({...f, target_jalur: val}));
+        setForm(f => ({ ...f, target_jalur: val }));
     }, [targets]);
 
     const openModal = (item: any = null) => {
@@ -147,7 +147,7 @@ export default function KriteriaIndex() {
             setIsEditMode(false);
             setForm(initialForm);
             setSelectOptions([]);
-            setTargets({studi: true, kerja: true, wirausaha: true});
+            setTargets({ studi: true, kerja: true, wirausaha: true });
         }
         setIsModalOpen(true);
     };
@@ -160,7 +160,7 @@ export default function KriteriaIndex() {
         } else if (val === 'number' && form.tipe_input === 'likert') {
             newMax = 100;
         }
-        setForm({...form, tipe_input: val, skala_maks: newMax});
+        setForm({ ...form, tipe_input: val, skala_maks: newMax });
     };
 
     // --- VALIDASI OPSI ---
@@ -174,7 +174,7 @@ export default function KriteriaIndex() {
             });
             return;
         }
-        setSelectOptions([...selectOptions, {val: nextVal, label: ''}]);
+        setSelectOptions([...selectOptions, { val: nextVal, label: '' }]);
     };
 
     const removeOption = (index: number) => {
@@ -190,7 +190,7 @@ export default function KriteriaIndex() {
             }
         }
         const newOpts = [...selectOptions];
-        newOpts[index] = {...newOpts[index], [field]: value};
+        newOpts[index] = { ...newOpts[index], [field]: value };
         setSelectOptions(newOpts);
     };
 
@@ -242,8 +242,8 @@ export default function KriteriaIndex() {
 
         if (!validateForm()) return;
 
-        let payload = {...form};
-        const {list_pertanyaan, ...cleanForm} = form as any;
+        let payload = { ...form };
+        const { list_pertanyaan, ...cleanForm } = form as any;
 
         if (form.tipe_input === 'likert') {
             payload.skala_maks = 5;
@@ -259,17 +259,17 @@ export default function KriteriaIndex() {
         try {
             if (isEditMode && form.id) {
                 await apiClient.put(`/kriteria/${form.id}`, finalPayload);
-                Toast.fire({icon: 'success', title: 'Kriteria berhasil diperbarui!'});
+                Toast.fire({ icon: 'success', title: 'Kriteria berhasil diperbarui!' });
             } else {
                 await apiClient.post('/kriteria', finalPayload);
-                Toast.fire({icon: 'success', title: 'Kriteria berhasil ditambahkan!'});
+                Toast.fire({ icon: 'success', title: 'Kriteria berhasil ditambahkan!' });
             }
             fetchData();
             setIsModalOpen(false);
         } catch (err: any) {
             console.error(err);
             const msg = err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data.';
-            MySwal.fire({icon: 'error', title: 'Gagal Menyimpan', text: msg});
+            MySwal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: msg });
         } finally {
             setProcessing(false);
         }
@@ -290,7 +290,7 @@ export default function KriteriaIndex() {
                 try {
                     await apiClient.delete(`/kriteria/${id}`);
                     fetchData();
-                    Toast.fire({icon: 'success', title: 'Data telah dihapus.'});
+                    Toast.fire({ icon: 'success', title: 'Data telah dihapus.' });
                 } catch (error) {
                     MySwal.fire('Gagal!', 'Terjadi kesalahan saat menghapus data.', 'error');
                 }
@@ -336,82 +336,82 @@ export default function KriteriaIndex() {
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-16">Kode</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama
-                                        Kriteria
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Jalur
-                                        Karir
-                                    </th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Tipe</th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
-                                </tr>
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-16">Kode</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama
+                                            Kriteria
+                                        </th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Jalur
+                                            Karir
+                                        </th>
+                                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Tipe</th>
+                                        <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan={5} className="p-8 text-center text-gray-500">Sedang memuat
-                                            data...
-                                        </td>
-                                    </tr>
-                                ) : data.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="p-8 text-center text-gray-500">Belum ada kriteria
-                                            yang dibuat.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    data.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 align-top">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={5} className="p-8 text-center text-gray-500">Sedang memuat
+                                                data...
+                                            </td>
+                                        </tr>
+                                    ) : data.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="p-8 text-center text-gray-500">Belum ada kriteria
+                                                yang dibuat.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        data.map((item) => (
+                                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 align-top">
                                                     <span
                                                         className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-100 text-indigo-700">
                                                         {item.kode}
                                                     </span>
-                                            </td>
-                                            <td className="px-6 py-4 align-top">
-                                                <div className="text-sm font-bold text-gray-900">{item.nama}</div>
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    PJ: <span
-                                                    className="uppercase font-semibold">{item.penanggung_jawab === 'gurubk' ? 'Guru BK' : item.penanggung_jawab}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 align-top">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {item.target_jalur === 'all' ? (
-                                                        <span
-                                                            className="bg-emerald-100 text-emerald-800 text-[10px] uppercase px-2 py-1 rounded-full font-bold tracking-wide">
+                                                </td>
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="text-sm font-bold text-gray-900">{item.nama}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        PJ: <span
+                                                            className="uppercase font-semibold">{item.penanggung_jawab === 'gurubk' ? 'Guru BK' : item.penanggung_jawab}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {item.target_jalur === 'all' ? (
+                                                            <span
+                                                                className="bg-emerald-100 text-emerald-800 text-[10px] uppercase px-2 py-1 rounded-full font-bold tracking-wide">
                                                                 Semua Jalur
                                                             </span>
-                                                    ) : (
-                                                        item.target_jalur.split(',').map(t => (
-                                                            <span key={t}
-                                                                  className="bg-gray-100 text-gray-600 text-[10px] uppercase px-2 py-1 rounded-full border border-gray-300 font-medium">
+                                                        ) : (
+                                                            item.target_jalur.split(',').map(t => (
+                                                                <span key={t}
+                                                                    className="bg-gray-100 text-gray-600 text-[10px] uppercase px-2 py-1 rounded-full border border-gray-300 font-medium">
                                                                     {t}
                                                                 </span>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center align-top">
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center align-top">
                                                     <span className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
                                                         {item.tipe_input}
                                                     </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-sm font-medium align-top">
-                                                <div className="flex justify-end gap-3">
-                                                    <button onClick={() => openModal(item)}
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-sm font-medium align-top">
+                                                    <div className="flex justify-end gap-3">
+                                                        <button onClick={() => openModal(item)}
                                                             className="text-indigo-600 hover:text-indigo-900 font-bold">Edit
-                                                    </button>
-                                                    <button onClick={() => confirmDelete(item.id)}
+                                                        </button>
+                                                        <button onClick={() => confirmDelete(item.id)}
                                                             className="text-red-600 hover:text-red-900">Hapus
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -432,10 +432,10 @@ export default function KriteriaIndex() {
                             <p className="text-sm text-gray-500 mt-1">Silakan lengkapi informasi kriteria penilaian.</p>
                         </div>
                         <button type="button" onClick={() => setIsModalOpen(false)}
-                                className="text-gray-400 hover:text-gray-600 bg-gray-100 p-2 rounded-full transition">
+                            className="text-gray-400 hover:text-gray-600 bg-gray-100 p-2 rounded-full transition">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M6 18L18 6M6 6l12 12"/>
+                                    d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
@@ -454,10 +454,10 @@ export default function KriteriaIndex() {
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-4 gap-4">
                                             <div className="col-span-1">
-                                                <InputLabel value="Kode" required/>
+                                                <InputLabel value="Kode" required />
                                                 <TextInput
                                                     value={form.kode}
-                                                    onChange={e => setForm({...form, kode: e.target.value})}
+                                                    onChange={e => setForm({ ...form, kode: e.target.value })}
                                                     className={`w-full mt-1 text-center font-bold uppercase bg-white ${errors.kode ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                                                     placeholder="C1"
                                                     disabled={isEditMode}
@@ -467,10 +467,10 @@ export default function KriteriaIndex() {
                                                     <p className="text-red-500 text-xs mt-1">{errors.kode}</p>}
                                             </div>
                                             <div className="col-span-3">
-                                                <InputLabel value="Nama Kriteria" required/>
+                                                <InputLabel value="Nama Kriteria" required />
                                                 <TextInput
                                                     value={form.nama}
-                                                    onChange={e => setForm({...form, nama: e.target.value})}
+                                                    onChange={e => setForm({ ...form, nama: e.target.value })}
                                                     className={`w-full mt-1 bg-white ${errors.nama ? 'border-red-500' : ''}`}
                                                     placeholder="Contoh: Penghasilan Orang Tua"
                                                     required
@@ -480,9 +480,9 @@ export default function KriteriaIndex() {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-3 gap-4">
                                             <div>
-                                                <InputLabel value="Cara Input Data"/>
+                                                <InputLabel value="Cara Input Data" />
                                                 <select
                                                     className="w-full mt-1 border-gray-300 rounded-lg shadow-sm text-sm bg-white"
                                                     value={form.tipe_input}
@@ -494,11 +494,28 @@ export default function KriteriaIndex() {
                                                 </select>
                                             </div>
                                             <div>
-                                                <InputLabel value="Siapa Penanggung Jawab?"/>
+                                                <InputLabel value="Kategori Kriteria" required />
+                                                <select
+                                                    className={`w-full mt-1 border rounded-lg shadow-sm text-sm bg-white
+                ${errors.kategori ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                                                    value={form.kategori}
+                                                    onChange={e => setForm({ ...form, kategori: e.target.value })}
+                                                    required
+                                                >
+                                                    <option value="">-- Pilih Kategori --</option>
+                                                    <option value="kuesioner">Kuesioner</option>
+                                                    <option value="akademik">Akademik</option>
+                                                </select>
+                                                {errors.kategori && (
+                                                    <p className="text-red-500 text-xs mt-1">{errors.kategori}</p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <InputLabel value="Siapa Penanggung Jawab?" />
                                                 <select
                                                     className="w-full mt-1 border-gray-300 rounded-lg shadow-sm text-sm bg-white"
                                                     value={form.penanggung_jawab}
-                                                    onChange={e => setForm({...form, penanggung_jawab: e.target.value})}
+                                                    onChange={e => setForm({ ...form, penanggung_jawab: e.target.value })}
                                                 >
                                                     <option value="gurubk">Guru BK (Kuesioner)</option>
                                                     <option value="kaprodi">Kaprodi (Keahlian)</option>
@@ -512,9 +529,9 @@ export default function KriteriaIndex() {
                                             <div className="mt-4 bg-white p-4 border border-gray-200 rounded-lg">
                                                 <div className="flex justify-between items-center mb-2">
                                                     <InputLabel value="Opsi Pilihan (Label & Nilai)"
-                                                                className="text-indigo-600"/>
+                                                        className="text-indigo-600" />
                                                     <button type="button" onClick={addOption}
-                                                            className="text-xs text-white bg-indigo-500 px-2 py-1 rounded hover:bg-indigo-600">
+                                                        className="text-xs text-white bg-indigo-500 px-2 py-1 rounded hover:bg-indigo-600">
                                                         + Tambah Opsi
                                                     </button>
                                                 </div>
@@ -536,7 +553,7 @@ export default function KriteriaIndex() {
                                                                 onChange={(e) => updateOption(idx, 'label', e.target.value)}
                                                             />
                                                             <button type="button" onClick={() => removeOption(idx)}
-                                                                    className="text-red-500 hover:text-red-700">x
+                                                                className="text-red-500 hover:text-red-700">x
                                                             </button>
                                                         </div>
                                                     ))}
@@ -553,15 +570,42 @@ export default function KriteriaIndex() {
                                     <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wide mb-4 flex items-center gap-2">
                                         2. Pengaturan Sistem
                                     </h3>
+                                    <div className="border-b border-emerald-200 pb-4">
+                                        <InputLabel
+                                            value="Sumber Nilai Kriteria"
+                                            className="text-emerald-900 mb-1 block font-semibold"
+                                            required
+                                        />
+                                        <select
+                                            className={`w-full mt-1 border rounded-lg shadow-sm text-sm bg-white
+            ${errors.sumber_nilai ? 'border-red-500 focus:ring-red-500' : 'border-emerald-300'}`}
+                                            value={form.sumber_nilai}
+                                            onChange={e => setForm({ ...form, sumber_nilai: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">-- Pilih Sumber Nilai --</option>
+                                            <option value="input_siswa">
+                                                Diisi oleh Siswa (Kuesioner / Input Langsung)
+                                            </option>
+                                            <option value="static_jurusan">
+                                                Nilai Statis per Jurusan (Data Sekolah)
+                                            </option>
+                                        </select>
+
+                                        {errors.sumber_nilai && (
+                                            <p className="text-red-500 text-xs mt-1">{errors.sumber_nilai}</p>
+                                        )}
+                                    </div>
+
 
                                     <div className="space-y-5">
                                         <div className="border-b border-emerald-200 pb-4">
                                             <InputLabel value="Sifat Nilai (Benefit/Cost)"
-                                                        className="text-emerald-900 mb-1 block font-semibold"/>
+                                                className="text-emerald-900 mb-1 block font-semibold" />
                                             <select
                                                 className="w-full mt-1 border-emerald-300 rounded-lg shadow-sm text-sm bg-white focus:ring-emerald-500"
                                                 value={form.atribut}
-                                                onChange={e => setForm({...form, atribut: e.target.value})}
+                                                onChange={e => setForm({ ...form, atribut: e.target.value })}
                                             >
                                                 <option value="benefit">Makin TINGGI nilainya, makin BAGUS (Benefit)
                                                 </option>
@@ -571,14 +615,14 @@ export default function KriteriaIndex() {
 
                                         <div>
                                             <InputLabel value="Kriteria ini dinilai untuk siapa?"
-                                                        className="text-emerald-900 mb-2 block"/>
+                                                className="text-emerald-900 mb-2 block" />
                                             <div
                                                 className="bg-white p-3 rounded-lg border border-emerald-200 space-y-2">
                                                 <label className="flex items-center space-x-3 cursor-pointer">
                                                     <Checkbox checked={targets.studi} onChange={(e) => setTargets({
                                                         ...targets,
                                                         studi: e.target.checked
-                                                    })}/>
+                                                    })} />
                                                     <span
                                                         className="text-sm text-gray-700">Siswa yang ingin <b>Kuliah</b></span>
                                                 </label>
@@ -586,7 +630,7 @@ export default function KriteriaIndex() {
                                                     <Checkbox checked={targets.kerja} onChange={(e) => setTargets({
                                                         ...targets,
                                                         kerja: e.target.checked
-                                                    })}/>
+                                                    })} />
                                                     <span
                                                         className="text-sm text-gray-700">Siswa yang ingin <b>Bekerja</b></span>
                                                 </label>
@@ -594,7 +638,7 @@ export default function KriteriaIndex() {
                                                     <Checkbox checked={targets.wirausaha} onChange={(e) => setTargets({
                                                         ...targets,
                                                         wirausaha: e.target.checked
-                                                    })}/>
+                                                    })} />
                                                     <span
                                                         className="text-sm text-gray-700">Siswa yang ingin <b>Berwirausaha</b></span>
                                                 </label>
@@ -604,7 +648,7 @@ export default function KriteriaIndex() {
                                         {form.tipe_input !== 'likert' && (
                                             <div>
                                                 <InputLabel value="Rentang Nilai Maksimal"
-                                                            className="text-emerald-900"/>
+                                                    className="text-emerald-900" />
                                                 <div className="flex items-center gap-3 mt-1">
                                                     <TextInput
                                                         type="number"
@@ -631,11 +675,11 @@ export default function KriteriaIndex() {
 
                                         <div className="pt-2 border-t border-emerald-200">
                                             <InputLabel value="Kasus Khusus: Apakah Nilai KECIL justru BAGUS?"
-                                                        className="text-emerald-900"/>
+                                                className="text-emerald-900" />
                                             <select
                                                 className="w-full mt-2 border-emerald-300 rounded-lg shadow-sm text-sm bg-white focus:ring-emerald-500"
                                                 value={form.jalur_reverse}
-                                                onChange={e => setForm({...form, jalur_reverse: e.target.value})}
+                                                onChange={e => setForm({ ...form, jalur_reverse: e.target.value })}
                                             >
                                                 <option value="">Tidak (Normal: Nilai Besar = Bagus)</option>
                                                 <option value="kerja">Ya, Khusus untuk Jalur KERJA</option>
@@ -655,7 +699,7 @@ export default function KriteriaIndex() {
                             Batal
                         </SecondaryButton>
                         <PrimaryButton disabled={processing}
-                                       className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md font-bold transition-all">
+                            className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md font-bold transition-all">
                             {processing ? 'Menyimpan...' : 'Simpan Kriteria'}
                         </PrimaryButton>
                     </div>
