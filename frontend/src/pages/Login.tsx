@@ -1,16 +1,16 @@
-import {useState, useEffect} from 'react';
-import type {FormEventHandler} from 'react';
+import { useState, useEffect } from 'react';
+import type { FormEventHandler } from 'react';
 import Checkbox from '../components/Checkbox';
 import InputLabel from '../components/InputLabel';
 import PrimaryButton from '../components/PrimaryButton';
 import TextInput from '../components/TextInput';
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import apiClient from "../lib/axios.ts";
 import { useLayout } from '@/contexts/useLayout.ts';
 
 export default function Login() {
     const navigate = useNavigate();
-    const {refreshUser} = useLayout(); // Get refresh method from context
+    const { refreshUser } = useLayout(); // Get refresh method from context
     const [schoolName, setSchoolName] = useState('SMK Negeri 1 Gorontalo');
 
     const [data, setData] = useState({
@@ -48,7 +48,7 @@ export default function Login() {
 
                 // Small delay untuk ensure context updated
                 setTimeout(() => {
-                    navigate('/dashboard', {replace: true});
+                    navigate('/dashboard', { replace: true });
                 }, 100);
             } else {
                 // Login Gagal
@@ -101,7 +101,7 @@ export default function Login() {
 
                 <form onSubmit={submit}>
                     <div>
-                        <InputLabel value="Email atau Username/NISN"/>
+                        <InputLabel value="Email atau Username/NISN" />
                         <TextInput
                             id="login_id"
                             type="text"
@@ -110,12 +110,12 @@ export default function Login() {
                             className="mt-1 block w-full"
                             autoComplete="username"
                             autoFocus
-                            onChange={(e) => setData({...data, login_id: e.target.value})}
+                            onChange={(e) => setData({ ...data, login_id: e.target.value })}
                         />
                     </div>
 
                     <div className="mt-4">
-                        <InputLabel value="Password"/>
+                        <InputLabel value="Password" />
                         <TextInput
                             id="password"
                             type="password"
@@ -123,7 +123,7 @@ export default function Login() {
                             value={data.password}
                             className="mt-1 block w-full"
                             autoComplete="current-password"
-                            onChange={(e) => setData({...data, password: e.target.value})}
+                            onChange={(e) => setData({ ...data, password: e.target.value })}
                         />
                     </div>
 
@@ -132,7 +132,7 @@ export default function Login() {
                             <Checkbox
                                 name="remember"
                                 checked={data.remember}
-                                onChange={(e) => setData({...data, remember: e.target.checked})}
+                                onChange={(e) => setData({ ...data, remember: e.target.checked })}
                             />
                             <span className="ml-2 text-sm text-gray-600">Ingat Saya</span>
                         </label>
@@ -142,6 +142,20 @@ export default function Login() {
                         <PrimaryButton className="w-full justify-center py-3 text-lg" disabled={processing}>
                             {processing ? 'Sedang Masuk...' : 'Masuk Sekarang'}
                         </PrimaryButton>
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        <span className="text-sm text-gray-600">
+                            Belum punya akun?
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => navigate('/register')}
+                            className="ml-2 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition"
+                        >
+                            Daftar Sekarang
+                        </button>
                     </div>
                 </form>
             </div>
