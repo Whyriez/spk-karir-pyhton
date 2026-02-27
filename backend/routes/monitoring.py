@@ -1,7 +1,8 @@
+import json
 from flask import Blueprint, request, jsonify, url_for
 from flask_jwt_extended import jwt_required, get_jwt
 from sqlalchemy import or_, and_, desc, asc
-from models import db, User, HasilRekomendasi, Periode, Jurusan, RoleEnum, RiwayatKelas
+from models import db, User, HasilRekomendasi, Periode, Jurusan, RoleEnum, RiwayatKelas, NilaiSiswa, Kriteria, NilaiStaticJurusan
 
 monitoring_bp = Blueprint('monitoring', __name__)
 
@@ -225,3 +226,127 @@ def update_catatan(id):
         'id': hasil.id,
         'catatan': hasil.catatan_guru_bk
     }}), 200
+
+
+@monitoring_bp.route('/export-uat', methods=['GET'], strict_slashes=False)
+@jwt_required()
+def export_uat():
+    claims = get_jwt()
+    if claims.get('role') not in ['admin', 'pakar']:
+        return jsonify({'msg': 'Akses ditolak'}), 403
+
+    periode_id = request.args.get('periode_id')
+    
+    if periode_id:
+        periode = Periode.query.get(periode_id)
+    else:
+        periode = Periode.query.filter_by(is_active=True).first()
+        if not periode:
+            periode = Periode.query.order_by(desc(Periode.id)).first()
+
+    current_periode_id = periode.id if periode else None
+
+    # Hanya ambil siswa yang sudah ada hasil rekomendasi
+    query = HasilRekomendasi.query.join(User).join(Jurusan, User.jurusan_id == Jurusan.id)
+    if current_periode_id:
+        query = query.filter(HasilRekomendasi.periode_id == current_periode_id)
+
+    results = query.order_by(User.name.asc()).all()
+    
+    # Ambil semua Kriteria yang ada untuk menjadi template perulangan
+    semua_kriteria = Kriteria.query.order_by(Kriteria.id.asc()).all()
+
+    data_items = []
+    for item in results:
+        detail_jawaban = []
+
+        for kriteria in semua_kriteria:
+            nilai_angka = None
+
+            # --- PENGECEKAN SUMBER NILAI ---
+            if kriteria.sumber_nilai.name == 'static_jurusan':
+                # Jika static, ambil dari tabel NilaiStaticJurusan berdasarkan Jurusan ID siswa
+                nsj = NilaiStaticJurusan.query.filter_by(
+                    jurusan_id=item.siswa.jurusan_id, 
+                    kriteria_id=kriteria.id
+                ).first()
+                if nsj is not None:
+                    nilai_angka = nsj.nilai
+            else:
+                # Jika input_siswa, ambil dari tabel NilaiSiswa berdasarkan Siswa ID
+                ns = NilaiSiswa.query.filter_by(
+                    siswa_id=item.siswa.id, 
+                    kriteria_id=kriteria.id
+                ).first()
+                if ns is not None:
+                    nilai_angka = ns.nilai_input
+
+            # Jika data tidak ada di kedua tabel, lewati kriteria ini
+            if nilai_angka is None:
+                continue
+
+            # 1. Format angka dasar (hilangkan .0 jika float bulat, misal 89.0 jadi 89)
+            str_nilai = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+            display_text = str_nilai
+
+            # 2. Ambil string tipe input
+            tipe_input_str = str(kriteria.tipe_input).split('.')[-1]
+
+            label_ditemukan = ""
+
+            # --- SKENARIO 1: TIPE LIKERT ---
+            if tipe_input_str == 'likert':
+                likert_map = {
+                    1: "Sangat Kurang / Sangat Rendah",
+                    2: "Kurang / Rendah",
+                    3: "Cukup",
+                    4: "Baik / Tinggi",
+                    5: "Sangat Baik / Sangat Tinggi"
+                }
+                label_ditemukan = likert_map.get(int(nilai_angka), "")
+
+            # --- SKENARIO 2: TIPE SELECT ---
+            elif tipe_input_str == 'select' and kriteria.opsi_pilihan:
+                opsi = kriteria.opsi_pilihan
+                
+                if isinstance(opsi, str):
+                    try:
+                        opsi = json.loads(opsi)
+                    except json.JSONDecodeError:
+                        pass
+                
+                if isinstance(opsi, list):
+                    for opt in opsi:
+                        if isinstance(opt, dict):
+                            opt_val = opt.get('val', opt.get('value', opt.get('id')))
+                            opt_label = opt.get('label', opt.get('keterangan', opt.get('text')))
+                            
+                            if opt_val is not None:
+                                try:
+                                    if float(opt_val) == float(nilai_angka):
+                                        label_ditemukan = str(opt_label)
+                                        break
+                                except (ValueError, TypeError):
+                                    pass
+
+                elif isinstance(opsi, dict):
+                    val_key = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+                    label_ditemukan = opsi.get(val_key, opsi.get(str(nilai_angka), ''))
+
+            # 3. Gabungkan angka dan label jika ditemukan
+            if label_ditemukan:
+                display_text = f"{str_nilai} ({label_ditemukan})"
+
+            detail_jawaban.append({
+                'kriteria': kriteria.nama,
+                'nilai': display_text  
+            })
+
+        data_items.append({
+            'name': item.siswa.name,
+            'nisn': item.siswa.nisn,
+            'keputusan_terbaik': item.keputusan_terbaik,
+            'detail_jawaban': detail_jawaban
+        })
+
+    return jsonify({'data': data_items}), 200

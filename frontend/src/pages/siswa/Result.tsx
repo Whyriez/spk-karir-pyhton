@@ -281,6 +281,16 @@ export default function ResultSiswa() {
                         </div>
                     </div>
                 </div>
+
+                <div className="flex justify-center pt-8 pb-4">
+                    <Link
+                        to="https://forms.gle/pFPoAioPigykLbrw5"
+                        target='_BLANK'
+                        className="px-8 py-3 border-2 border-indigo-600 text-indigo-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition-all duration-200"
+                    >
+                        Isi Formulir Kuesioner
+                    </Link>
+                </div>
             </div>
 
             {/* MODAL ALUMNI */}

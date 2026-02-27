@@ -328,10 +328,13 @@ export default function InputDataSiswa() {
 
             const currentValue = Number(val);
 
-            const gridCols = `grid-cols-${likertOptions.length}`;
+            // const gridCols = `grid-cols-${likertOptions.length}`;
 
             return (
-                <div className={`grid ${gridCols} gap-2 mt-2 md:w-3/4`}>
+                <div
+                    className="grid gap-2 mt-2 md:w-3/4"
+                    style={{ gridTemplateColumns: `repeat(${likertOptions.length}, 1fr)` }}
+                >
                     {likertOptions.map((opt: LikertOption) => (
                         <label key={opt.val} className={`
                             cursor-pointer border rounded-md p-2 text-center transition-all flex flex-col items-center justify-center
