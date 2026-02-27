@@ -26,6 +26,7 @@ import AuthenticatedLayout from "./Layouts/AuthenticatedLayout.tsx";
 import PakarIndex from "./pages/admin/pakar";
 import SimulationIndex from "./pages/admin/simulation";
 import { LayoutProvider } from './contexts/LayoutProvider.tsx';
+import Register from './pages/Register.tsx';
 
 
 
@@ -55,6 +56,7 @@ function App() {
                     {/* Public routes */}
                     <Route path="/" element={<Welcome />} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
 
                     {/* Authenticated routes with Layout */}
                     <Route element={<AuthenticatedLayout />}>

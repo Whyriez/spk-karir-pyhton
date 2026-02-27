@@ -17,14 +17,30 @@ def get_siswa():
     if claims.get('role') != 'admin':
         return jsonify({'msg': 'Akses ditolak'}), 403
 
-    # 1. Ambil Periode Aktif untuk referensi
+    # 1. Ambil Parameter Query
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search_query = request.args.get('search', '', type=str)
+
+    # 2. Ambil Periode Aktif untuk referensi
     periode_aktif = Periode.query.filter_by(is_active=True).first()
 
-    # 2. Ambil semua siswa
-    siswas = User.query.filter_by(role='siswa').order_by(User.username.asc()).all()
+    # 3. Bangun Query
+    query = User.query.filter_by(role='siswa')
+
+    if search_query:
+        query = query.filter(
+            db.or_(
+                User.name.ilike(f'%{search_query}%'),
+                User.username.ilike(f'%{search_query}%') # NISN
+            )
+        )
+
+    # 4. Eksekusi Pagination
+    paginated_siswas = query.order_by(User.username.asc()).paginate(page=page, per_page=per_page, error_out=False)
 
     data = []
-    for s in siswas:
+    for s in paginated_siswas.items: # Ambil item pada halaman aktif saja
         jurusan_nama = s.jurusan.nama_jurusan if s.jurusan else '-'
 
         # LOGIKA BARU: Cari kelas di RiwayatKelas berdasarkan Periode Aktif
@@ -50,7 +66,17 @@ def get_siswa():
             'created_at': s.created_at
         })
 
-    return jsonify({'data': data})
+    return jsonify({
+        'data': data,
+        'meta': {
+            'current_page': paginated_siswas.page,
+            'total_pages': paginated_siswas.pages,
+            'total_items': paginated_siswas.total,
+            'per_page': paginated_siswas.per_page,
+            'has_next': paginated_siswas.has_next,
+            'has_prev': paginated_siswas.has_prev
+        }
+    })
 
 
 # --- TAMBAH SISWA ---
@@ -350,6 +376,7 @@ def import_siswa():
                 username=nisn,
                 password=hashed_password,
                 name=nama,
+                nisn=nisn,
                 role=RoleEnum.siswa,
                 jurusan_id=jurusan_id
             )
@@ -383,3 +410,33 @@ def import_siswa():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Gagal Import: " + str(e)}), 500
+    
+@admin_siswa_bp.route('/delete-bulk', methods=['POST'], strict_slashes=False)
+@jwt_required()
+def delete_siswa_bulk():
+    claims = get_jwt()
+    if claims.get('role') != 'admin': 
+        return jsonify({'msg': 'Akses ditolak'}), 403
+
+    data = request.get_json()
+    siswa_ids = data.get('siswa_ids', []) # Menerima array [1, 2, 3]
+
+    if not siswa_ids:
+        return jsonify({'msg': 'Tidak ada data yang dipilih'}), 400
+
+    try:
+        # HAPUS MANUAL DATA TERKAIT DULU UNTUK SEMUA ID TERPILIH
+        RiwayatKelas.query.filter(RiwayatKelas.siswa_id.in_(siswa_ids)).delete(synchronize_session=False)
+        NilaiSiswa.query.filter(NilaiSiswa.siswa_id.in_(siswa_ids)).delete(synchronize_session=False)
+        HasilRekomendasi.query.filter(HasilRekomendasi.siswa_id.in_(siswa_ids)).delete(synchronize_session=False)
+
+        # HAPUS USER INDUK (SISWA)
+        User.query.filter(User.id.in_(siswa_ids)).delete(synchronize_session=False)
+        
+        db.session.commit()
+        return jsonify({'msg': f'{len(siswa_ids)} siswa berhasil dihapus'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error Bulk Delete Siswa: {e}")
+        return jsonify({'msg': f'Gagal menghapus siswa: {str(e)}'}), 500

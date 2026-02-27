@@ -332,16 +332,19 @@ export default function InputDataSiswa() {
 
             return (
                 <div
-                    className="grid gap-2 mt-2 md:w-3/4"
+                    className="grid gap-2 mt-2 md:w-3/4 mx-auto"
                     style={{ gridTemplateColumns: `repeat(${likertOptions.length}, 1fr)` }}
                 >
                     {likertOptions.map((opt: LikertOption) => (
-                        <label key={opt.val} className={`
-                            cursor-pointer border rounded-md p-2 text-center transition-all flex flex-col items-center justify-center
-                            ${currentValue === opt.val
-                                ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-lg transform scale-105'
-                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
-                        `}>
+                        <label
+                            key={opt.val}
+                            className={`
+                    cursor-pointer border rounded-md p-2 text-center transition-all flex flex-col items-center justify-center
+                    ${currentValue === opt.val
+                                    ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-lg transform scale-105'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
+                `}
+                        >
                             <input
                                 type="radio"
                                 name={`p_${inputKey}`}

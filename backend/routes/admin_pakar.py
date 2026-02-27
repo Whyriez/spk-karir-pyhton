@@ -63,7 +63,7 @@ def store_pakar():
 
     try:
         # Default Password: "password123" (Bisa diganti)
-        hashed_password = generate_password_hash("password123")
+        hashed_password = generate_password_hash("123456")
 
         new_pakar = User(
             username=data['username'],

@@ -6,7 +6,7 @@ jurusan_bp = Blueprint('jurusan', __name__)
 
 
 @jurusan_bp.route('/', methods=['GET'], strict_slashes=False)
-@jwt_required()
+# @jwt_required()
 def index():
     # Public read (bisa dipakai saat register/form)
     data = Jurusan.query.order_by(Jurusan.kode_jurusan.asc()).all()

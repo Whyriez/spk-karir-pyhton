@@ -52,12 +52,20 @@ export default function AdminSiswaIndex() {
     // Modal CRUD State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
-    
+
     // Modal Import State
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importFile, setImportFile] = useState<File | null>(null);
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+    // --- STATE PAGINATION & SEARCH ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+
 
     const [processing, setProcessing] = useState(false);
     // const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -74,22 +82,39 @@ export default function AdminSiswaIndex() {
     const [form, setForm] = useState(initialForm);
 
     // --- FETCH DATA ---
-    const fetchData = async () => {
+    const fetchData = async (page = currentPage, search = searchQuery) => {
         setLoading(true);
         try {
             const [resSiswa, resJurusan] = await Promise.all([
-                apiClient.get('/admin/siswa'),
+                apiClient.get(`/admin/siswa?page=${page}&per_page=10&search=${search}`),
                 apiClient.get('/jurusan')
             ]);
             setData(resSiswa.data.data);
+
+            // Update Meta Pagination
+            setCurrentPage(resSiswa.data.meta.current_page);
+            setTotalPages(resSiswa.data.meta.total_pages);
+            setTotalItems(resSiswa.data.meta.total_items);
+
             setJurusans(resJurusan.data.data);
-            setSelectedIds([]); // Reset selection
+            setSelectedIds([]); // Reset selection setiap pindah halaman
         } catch (err) {
             console.error(err);
             Toast.fire({ icon: 'error', title: 'Gagal memuat data.' });
         } finally {
             setLoading(false);
         }
+    };
+
+    // Panggil ulang jika currentPage atau searchQuery berubah
+    useEffect(() => {
+        fetchData(currentPage, searchQuery);
+    }, [currentPage, searchQuery]);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentPage(1); // Reset ke halaman 1 saat mencari
+        setSearchQuery(searchInput);
     };
 
     useEffect(() => {
@@ -99,7 +124,7 @@ export default function AdminSiswaIndex() {
     // --- IMPORT HANDLERS ---
     const handlePreview = async () => {
         if (!importFile) return Toast.fire({ icon: 'warning', title: 'Pilih file excel dulu.' });
-        
+
         setIsLoadingPreview(true);
         const formData = new FormData();
         formData.append('file', importFile);
@@ -130,7 +155,7 @@ export default function AdminSiswaIndex() {
             const res = await apiClient.post('/admin/siswa/import', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            
+
             setIsImportModalOpen(false);
             setImportFile(null);
             setPreviewData([]);
@@ -140,9 +165,9 @@ export default function AdminSiswaIndex() {
             if (res.data.errors && res.data.errors.length > 0) {
                 msg += '\n\nNote: ' + res.data.errors.join('\n');
             }
-            MySwal.fire({ 
-                icon: 'success', 
-                title: 'Import Selesai', 
+            MySwal.fire({
+                icon: 'success',
+                title: 'Import Selesai',
                 text: msg,
                 width: 600
             });
@@ -167,7 +192,7 @@ export default function AdminSiswaIndex() {
     const handleBulkAction = async (newStatus: string) => {
         if (selectedIds.length === 0) return;
         const label = newStatus === 'Tinggal Kelas' ? 'Tinggal Kelas' : 'Naik Kelas';
-        
+
         MySwal.fire({
             title: `Set ${selectedIds.length} Siswa?`,
             text: `Ubah status menjadi "${label}"?`,
@@ -252,6 +277,39 @@ export default function AdminSiswaIndex() {
         });
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        MySwal.fire({
+            title: `Hapus ${selectedIds.length} Siswa Terpilih?`,
+            text: "Data history nilai dan hasil rekomendasi mereka akan ikut terhapus permanen!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus Semua!',
+            cancelButtonText: 'Batal'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    setProcessing(true);
+                    await apiClient.post('/admin/siswa/delete-bulk', {
+                        siswa_ids: selectedIds
+                    });
+                    Toast.fire({ icon: 'success', title: `${selectedIds.length} siswa berhasil dihapus!` });
+
+                    setSelectedIds([]); // Kosongkan centang setelah berhasil
+                    fetchData(currentPage, searchQuery); // Refresh data di halaman saat ini
+                } catch (error: any) {
+                    const msg = error.response?.data?.msg || 'Gagal menghapus data siswa.';
+                    MySwal.fire('Error', msg, 'error');
+                } finally {
+                    setProcessing(false);
+                }
+            }
+        });
+    };
+
     return (
         <div>
             <Header>
@@ -262,24 +320,49 @@ export default function AdminSiswaIndex() {
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    
+
                     {/* TOOLBAR BULK ACTION */}
                     {selectedIds.length > 0 && (
                         <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-4 shadow-sm rounded-r flex justify-between items-center animate-pulse">
                             <div className="font-bold text-indigo-700">{selectedIds.length} Siswa Dipilih.</div>
                             <div className="flex gap-2">
-                                <button onClick={() => handleBulkAction('Tinggal Kelas')} className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-red-700">Set "Tinggal Kelas"</button>
+                                {/* Tombol Tinggal saya ubah warnanya jadi kuning (yellow-500) agar beda dengan Hapus */}
+                                <button onClick={() => handleBulkAction('Tinggal Kelas')} className="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-yellow-600">Set "Tinggal Kelas"</button>
                                 <button onClick={() => handleBulkAction('Aktif')} className="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-green-700">Set "Naik Kelas"</button>
+
+                                <div className="w-px bg-indigo-200 mx-1"></div> {/* Pembatas Vertikal (Opsional) */}
+
+                                {/* Tombol Hapus Bulk */}
+                                <button onClick={handleBulkDelete} className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-red-700">Hapus Terpilih</button>
                             </div>
                         </div>
                     )}
 
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 p-6">
                         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                            <div className="text-gray-900 font-bold text-lg whitespace-nowrap">Daftar Siswa</div>
-                            <div className="flex gap-2">
-                                <SecondaryButton onClick={() => setIsImportModalOpen(true)}>Import Excel</SecondaryButton>
-                                <PrimaryButton onClick={() => openModal()}>+ Tambah Siswa</PrimaryButton>
+                            <div className="flex flex-col">
+                                <span className="text-gray-900 font-bold text-lg whitespace-nowrap">Daftar Siswa</span>
+                                <span className="text-sm text-gray-500">Total: {totalItems} Siswa</span>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                                <form onSubmit={handleSearch} className="flex">
+                                    <input
+                                        type="text"
+                                        placeholder="Cari Nama / NISN..."
+                                        className="border-gray-300 rounded-l-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
+                                    />
+                                    <button type="submit" className="bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-300 rounded-r-md px-3 text-gray-600">
+                                        Cari
+                                    </button>
+                                </form>
+
+                                <div className="flex gap-2">
+                                    <SecondaryButton onClick={() => setIsImportModalOpen(true)}>Import Excel</SecondaryButton>
+                                    <PrimaryButton onClick={() => openModal()}>+ Tambah Siswa</PrimaryButton>
+                                </div>
                             </div>
                         </div>
 
@@ -318,8 +401,8 @@ export default function AdminSiswaIndex() {
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">{item.jurusan_nama}</td>
                                                 <td className="px-6 py-4 text-center">
-                                                    {item.status_akhir_periode_ini === 'Tinggal Kelas' ? 
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Tinggal Kelas</span> : 
+                                                    {item.status_akhir_periode_ini === 'Tinggal Kelas' ?
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Tinggal Kelas</span> :
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Akan Naik</span>
                                                     }
                                                 </td>
@@ -332,6 +415,46 @@ export default function AdminSiswaIndex() {
                                     )}
                                 </tbody>
                             </table>
+
+
+                            {/* PAGINATION CONTROLS */}
+                            {!loading && totalPages > 1 && (
+                                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-md">
+                                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-700">
+                                                Menampilkan halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span>
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={currentPage === 1}
+                                                    className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                                >
+                                                    <span className="sr-only">Previous</span>
+                                                    &larr; Prev
+                                                </button>
+
+                                                {/* Info Halaman Sederhana */}
+                                                <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300">
+                                                    {currentPage}
+                                                </span>
+
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                    disabled={currentPage === totalPages}
+                                                    className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                                >
+                                                    <span className="sr-only">Next</span>
+                                                    Next &rarr;
+                                                </button>
+                                            </nav>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -341,20 +464,20 @@ export default function AdminSiswaIndex() {
             <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="md">
                 <form onSubmit={handleSubmit} className="p-6">
                     <h2 className="text-lg font-bold mb-4">{isEditMode ? 'Edit Siswa' : 'Tambah Siswa'}</h2>
-                    
+
                     <div className="space-y-4">
                         <div>
                             <InputLabel value="NISN" required />
-                            <TextInput value={form.username} onChange={e => setForm({...form, username: e.target.value})} className="w-full" required />
+                            <TextInput value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} className="w-full" required />
                         </div>
                         <div>
                             <InputLabel value="Nama" required />
-                            <TextInput value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full" required />
+                            <TextInput value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full" required />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <InputLabel value="Kelas" required />
-                                <select value={form.kelas} onChange={e => setForm({...form, kelas: e.target.value})} className="w-full border-gray-300 rounded-md shadow-sm">
+                                <select value={form.kelas} onChange={e => setForm({ ...form, kelas: e.target.value })} className="w-full border-gray-300 rounded-md shadow-sm">
                                     <option value="10">10</option>
                                     <option value="11">11</option>
                                     <option value="12">12</option>
@@ -362,17 +485,17 @@ export default function AdminSiswaIndex() {
                             </div>
                             <div>
                                 <InputLabel value="Jurusan" required />
-                                <select value={form.jurusan_id} onChange={e => setForm({...form, jurusan_id: e.target.value})} className="w-full border-gray-300 rounded-md shadow-sm">
+                                <select value={form.jurusan_id} onChange={e => setForm({ ...form, jurusan_id: e.target.value })} className="w-full border-gray-300 rounded-md shadow-sm">
                                     <option value="">Pilih</option>
-                                    {jurusans.map(j => <option key={j.id} value={j.id}>{j.nama_jurusan}</option>)}
+                                    {jurusans.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
                                 </select>
                             </div>
                         </div>
-                        
+
                         {isEditMode && (
                             <div className="pt-2">
                                 <label className="flex items-center space-x-2">
-                                    <Checkbox checked={form.reset_password} onChange={e => setForm({...form, reset_password: e.target.checked})} />
+                                    <Checkbox checked={form.reset_password} onChange={e => setForm({ ...form, reset_password: e.target.checked })} />
                                     <span className="text-sm text-gray-600">Reset Password (ke 123456)</span>
                                 </label>
                             </div>
@@ -409,8 +532,8 @@ export default function AdminSiswaIndex() {
                         <div className="mb-4 flex gap-2 items-end">
                             <div className="w-full">
                                 <InputLabel value="Pilih File Excel (.xlsx / .xls)" />
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     accept=".xlsx, .xls"
                                     className="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 p-2"
                                     onChange={(e) => {
@@ -447,8 +570,8 @@ export default function AdminSiswaIndex() {
                                                     <td className="px-4 py-2 text-sm text-gray-900">{row.kelas}</td>
                                                     <td className="px-4 py-2 text-sm text-gray-900">{row.jurusan}</td>
                                                     <td className="px-4 py-2 text-xs">
-                                                        {row.is_jurusan_valid ? 
-                                                            <span className="text-green-600 font-bold">Valid</span> : 
+                                                        {row.is_jurusan_valid ?
+                                                            <span className="text-green-600 font-bold">Valid</span> :
                                                             <span className="text-red-600 font-bold">Jurusan Salah</span>
                                                         }
                                                     </td>
