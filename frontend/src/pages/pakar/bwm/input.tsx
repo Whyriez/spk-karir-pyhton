@@ -27,6 +27,19 @@ interface Kriteria {
     editable?: boolean;
 }
 
+// --- DEFINISI SKALA BWM (SAATY SCALE) ---
+const scaleOptions = [
+    { val: 1, label: '1 - Sama Penting' },
+    { val: 2, label: '2 - Diantara 1 & 3' },
+    { val: 3, label: '3 - Sedikit Lebih Penting' },
+    { val: 4, label: '4 - Diantara 3 & 5' },
+    { val: 5, label: '5 - Jelas Lebih Penting' },
+    { val: 6, label: '6 - Diantara 5 & 7' },
+    { val: 7, label: '7 - Sangat Lebih Penting' },
+    { val: 8, label: '8 - Diantara 7 & 9' },
+    { val: 9, label: '9 - Mutlak Lebih Penting' }
+];
+
 export default function BwmInput() {
     // Context Data
     const [globalBest, setGlobalBest] = useState<Kriteria | null>(null);
@@ -77,7 +90,6 @@ export default function BwmInput() {
     // Effect untuk Realtime CR Calculation
     useEffect(() => {
         const timer = setTimeout(async () => {
-            // Hanya hitung jika sudah ada inputan
             if (Object.keys(bestToOthers).length === 0 && Object.keys(othersToWorst).length === 0) return;
 
             try {
@@ -91,12 +103,12 @@ export default function BwmInput() {
             } catch (err) {
                 console.error("Error calculating CR:", err);
             }
-        }, 800); // Debounce 800ms
+        }, 800);
 
         return () => clearTimeout(timer);
     }, [bestToOthers, othersToWorst]);
 
-    // --- LOGIKA SORTING (NATURAL SORT) ---
+    // --- LOGIKA SORTING ---
     const sortedKriteriaList = useMemo(() => {
         return [...criteriaList].sort((a, b) => {
             const numA = parseInt(a.kode.replace(/\D/g, '') || '0');
@@ -109,7 +121,6 @@ export default function BwmInput() {
     const validateForm = () => {
         if (!globalBest || !globalWorst) return "Data referensi Best/Worst tidak ditemukan.";
 
-        // Ambil hanya kriteria milik user ini
         const myCriteria = criteriaList.filter(k => k.editable);
 
         const missingBest = myCriteria
@@ -140,25 +151,23 @@ export default function BwmInput() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 1. Validasi Input
         const errorMsg = validateForm();
         if (errorMsg) {
             MySwal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: errorMsg });
             return;
         }
 
-        // 2. Cek Konsistensi (Optional Warning)
         if (crValue !== null && crValue > 0.1) {
             await MySwal.fire({
-                icon: 'error', // Icon error untuk menandakan tidak bisa lanjut
+                icon: 'error',
                 title: 'Konsistensi Tidak Valid',
                 html: `Nilai CR Anda adalah <b>${crValue.toFixed(4)}</b> (> 0.1).<br/>Sistem mensyaratkan nilai CR harus ≤ 0.1 (Konsisten).<br/>Silakan perbaiki penilaian Anda.`,
-                confirmButtonText: 'Perbaiki Dulu', // Hanya satu tombol
+                confirmButtonText: 'Perbaiki Dulu',
                 confirmButtonColor: '#3085d6',
-                showCancelButton: false, // Hilangkan tombol cancel/lanjut
+                showCancelButton: false,
                 allowOutsideClick: false
             });
-            return; // STOP: Jangan lanjut ke proses penyimpanan
+            return;
         }
 
         setProcessing(true);
@@ -222,6 +231,46 @@ export default function BwmInput() {
                         </div>
                     </div>
 
+                    {/* --- PANDUAN SKALA (LEGEND) BARU --- */}
+                    <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-6 mb-8">
+                        <h3 className="text-sm md:text-base font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
+                            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Panduan Skala Penilaian (1 - 9)
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-indigo-700 font-extrabold text-xl">1</span>
+                                <span className="text-xs text-gray-600 font-bold uppercase">Sama Penting</span>
+                                <span className="text-[10px] text-gray-500">Kedua kriteria memiliki pengaruh yang sama besarnya.</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-indigo-700 font-extrabold text-xl">3</span>
+                                <span className="text-xs text-gray-600 font-bold uppercase">Sedikit Lebih Penting</span>
+                                <span className="text-[10px] text-gray-500">Satu kriteria sedikit lebih diutamakan.</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-indigo-700 font-extrabold text-xl">5</span>
+                                <span className="text-xs text-gray-600 font-bold uppercase">Jelas Lebih Penting</span>
+                                <span className="text-[10px] text-gray-500">Satu kriteria punya pengaruh sangat kuat.</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-indigo-700 font-extrabold text-xl">7</span>
+                                <span className="text-xs text-gray-600 font-bold uppercase">Sangat Lebih Penting</span>
+                                <span className="text-[10px] text-gray-500">Satu kriteria sangat mendominasi kriteria lain.</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-indigo-700 font-extrabold text-xl">9</span>
+                                <span className="text-xs text-gray-600 font-bold uppercase">Mutlak Lebih Penting</span>
+                                <span className="text-[10px] text-gray-500">Satu kriteria mutlak yang paling penting.</span>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-xs text-gray-500 italic">
+                            *Catatan: Nilai genap (<strong className="text-indigo-600">2, 4, 6, 8</strong>) dapat Anda gunakan sebagai nilai tengah apabila Anda ragu di antara dua penilaian ganjil yang berdekatan.
+                        </p>
+                    </div>
+
                     <div className={`sticky top-20 z-30 shadow-lg p-4 mb-8 rounded-xl border flex flex-col md:flex-row justify-between items-center transition-all duration-500 backdrop-blur-md ${crValue === null ? 'bg-white/95 border-gray-200' :
                         crValue <= 0.1 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-800' :
                             'bg-amber-50/95 border-amber-200 text-amber-800'
@@ -257,16 +306,13 @@ export default function BwmInput() {
 
                     <form onSubmit={handleSubmit} className="space-y-8">
 
-                        {/* --- TAMPILAN STATIS BEST & WORST --- */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-                            {/* Connector (Desktop Only) */}
                             <div className="hidden md:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-white p-1 rounded-full border border-gray-200 shadow-sm">
                                 <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                 </svg>
                             </div>
 
-                            {/* KOTAK BEST */}
                             <div className="bg-gradient-to-br from-green-50 to-white p-6 rounded-xl border border-green-200 text-center shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-green-100 rounded-full opacity-50 blur-xl"></div>
                                 <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest border border-green-200 px-2 py-0.5 rounded-full bg-white">
@@ -280,7 +326,6 @@ export default function BwmInput() {
                                 </div>
                             </div>
 
-                            {/* KOTAK WORST */}
                             <div className="bg-gradient-to-br from-red-50 to-white p-6 rounded-xl border border-red-200 text-center shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-red-100 rounded-full opacity-50 blur-xl"></div>
                                 <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest border border-red-200 px-2 py-0.5 rounded-full bg-white">
@@ -295,42 +340,40 @@ export default function BwmInput() {
                             </div>
                         </div>
 
-                        {/* --- FORM PERBANDINGAN --- */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
                             {/* KOLOM BEST TO OTHERS */}
                             <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
                                 <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-100">
                                     <h3 className="font-bold text-indigo-900 text-lg">Best-to-Others</h3>
+                                    <p className="text-xs text-indigo-600 mt-1">Seberapa penting <strong>{globalBest?.nama}</strong> dibandingkan dengan kriteria di bawah ini?</p>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {sortedKriteriaList.map((k) => {
                                         if (k.id === globalBest?.id) return null;
 
-                                        // LOGIC DISABLE
                                         const isDisabled = !k.editable;
 
                                         return (
-                                            <div key={k.id} className={`flex items-center justify-between p-3 rounded-lg border ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                                            <div key={k.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-gray-300 gap-3 ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
                                                 <div className="flex flex-col">
-                                                    <div className="flex items-center">
+                                                    <div className="flex items-center flex-wrap gap-1">
                                                         <span className="text-sm font-bold text-gray-700">
                                                             BEST ➔ {k.nama}
                                                         </span>
                                                         {renderOwnerBadge(k.owner)}
                                                     </div>
-                                                    {isDisabled && <span className="text-[10px] text-red-500 italic">Diisi oleh {k.owner}</span>}
+                                                    {isDisabled && <span className="text-[10px] text-red-500 italic mt-1">Diisi oleh {k.owner}</span>}
                                                 </div>
                                                 <select
                                                     disabled={isDisabled}
-                                                    className={`w-20 text-center border-gray-300 rounded-md shadow-sm text-sm font-bold 
+                                                    className={`w-full sm:max-w-[13rem] border-gray-300 rounded-md shadow-sm text-sm font-bold pl-3 pr-8 py-2
                                                         ${isDisabled ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'focus:ring-indigo-500'}
-                                                        ${!isDisabled && !bestToOthers[k.id] ? 'bg-red-50 border-red-300' : ''}`}
+                                                        ${!isDisabled && !bestToOthers[k.id] ? 'bg-red-50 border-red-300 ring-1 ring-red-300' : ''}`}
                                                     onChange={(e) => handleComparisonChange("best", k.id, e.target.value)}
                                                     value={bestToOthers[k.id] || ""}
                                                 >
-                                                    <option value="">-</option>
-                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(val => <option key={val} value={val}>{val}</option>)}
+                                                    <option value="" disabled className="text-gray-400">Pilih Skala</option>
+                                                    {scaleOptions.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
                                                 </select>
                                             </div>
                                         );
@@ -342,35 +385,35 @@ export default function BwmInput() {
                             <div className="bg-white rounded-xl shadow-sm border border-rose-100 overflow-hidden">
                                 <div className="bg-rose-50 px-6 py-4 border-b border-rose-100">
                                     <h3 className="font-bold text-rose-900 text-lg">Others-to-Worst</h3>
+                                    <p className="text-xs text-rose-600 mt-1">Seberapa penting kriteria di bawah ini dibandingkan dengan <strong>{globalWorst?.nama}</strong>?</p>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {sortedKriteriaList.map((k) => {
                                         if (k.id === globalWorst?.id) return null;
 
-                                        // LOGIC DISABLE
                                         const isDisabled = !k.editable;
 
                                         return (
-                                            <div key={k.id} className={`flex items-center justify-between p-3 rounded-lg border ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                                            <div key={k.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-gray-300 gap-3 ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
                                                 <div className="flex flex-col">
-                                                    <div className="flex items-center">
+                                                    <div className="flex items-center flex-wrap gap-1">
                                                         <span className="text-sm font-bold text-gray-700">
                                                             {k.nama} ➔ WORST
                                                         </span>
                                                         {renderOwnerBadge(k.owner)}
                                                     </div>
-                                                    {isDisabled && <span className="text-[10px] text-red-500 italic">Diisi oleh {k.owner}</span>}
+                                                    {isDisabled && <span className="text-[10px] text-red-500 italic mt-1">Diisi oleh {k.owner}</span>}
                                                 </div>
                                                 <select
                                                     disabled={isDisabled}
-                                                    className={`w-20 text-center border-gray-300 rounded-md shadow-sm text-sm font-bold 
+                                                    className={`w-full sm:max-w-[13rem] border-gray-300 rounded-md shadow-sm text-sm font-bold pl-3 pr-8 py-2
                                                         ${isDisabled ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'focus:ring-rose-500'}
-                                                        ${!isDisabled && !othersToWorst[k.id] ? 'bg-red-50 border-red-300' : ''}`}
+                                                        ${!isDisabled && !othersToWorst[k.id] ? 'bg-red-50 border-red-300 ring-1 ring-red-300' : ''}`}
                                                     onChange={(e) => handleComparisonChange("others", k.id, e.target.value)}
                                                     value={othersToWorst[k.id] || ""}
                                                 >
-                                                    <option value="">-</option>
-                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(val => <option key={val} value={val}>{val}</option>)}
+                                                    <option value="" disabled className="text-gray-400">Pilih Skala</option>
+                                                    {scaleOptions.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
                                                 </select>
                                             </div>
                                         );
@@ -380,7 +423,6 @@ export default function BwmInput() {
 
                         </div>
 
-                        {/* TOMBOL SUBMIT */}
                         <div className="flex justify-end pt-6 border-t border-gray-100 pb-12">
                             <button
                                 type="submit"

@@ -12,12 +12,21 @@ alumni_bp = Blueprint('alumni', __name__)
 def index():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
+    filter_batch = request.args.get('batch', '')
+    filter_major = request.args.get('major', '')
 
     query = Alumni.query
+    
     if search:
         query = query.filter(Alumni.name.ilike(f'%{search}%') |
                              Alumni.major.ilike(f'%{search}%') |
                              Alumni.status.ilike(f'%{search}%'))
+                             
+    if filter_batch:
+        query = query.filter(Alumni.batch == filter_batch)
+        
+    if filter_major:
+        query = query.filter(Alumni.major == filter_major)
 
     pagination = query.order_by(Alumni.batch.desc()).paginate(page=page, per_page=10, error_out=False)
 
@@ -31,7 +40,6 @@ def index():
             'major': a.major
         })
 
-    # Format Pagination agar mirip Laravel response structure
     return jsonify({
         'data': data,
         'meta': {
@@ -39,10 +47,24 @@ def index():
             'last_page': pagination.pages,
             'total': pagination.total,
             'per_page': 10,
-            'from': (page - 1) * 10 + 1,
+            'from': (page - 1) * 10 + 1 if pagination.total > 0 else 0,
             'to': min(page * 10, pagination.total)
         }
     })
+
+# --- ENDPOINT BARU: AMBIL FILTER UNIK ---
+@alumni_bp.route('/filters', methods=['GET'], strict_slashes=False)
+@jwt_required()
+def get_filters():
+    # Ambil Angkatan Unik
+    batches = db.session.query(Alumni.batch).distinct().filter(Alumni.batch.isnot(None)).order_by(Alumni.batch.desc()).all()
+    # Ambil Jurusan Unik
+    majors = db.session.query(Alumni.major).distinct().filter(Alumni.major.isnot(None)).order_by(Alumni.major.asc()).all()
+    
+    return jsonify({
+        'batches': [str(b[0]).strip() for b in batches if str(b[0]).strip() != ''],
+        'majors': [str(m[0]).strip() for m in majors if str(m[0]).strip() != '']
+    }), 200
 
 
 @alumni_bp.route('/', methods=['POST'], strict_slashes=False)
@@ -96,7 +118,6 @@ def destroy(id):
     return jsonify({'msg': 'Data alumni dihapus'}), 200
 
 
-# --- FITUR BARU: BULK DELETE ---
 @alumni_bp.route('/bulk-destroy', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def bulk_destroy():
@@ -110,7 +131,6 @@ def bulk_destroy():
         return jsonify({'msg': 'Tidak ada data dipilih'}), 400
 
     try:
-        # Hapus banyak data sekaligus
         Alumni.query.filter(Alumni.id.in_(ids)).delete(synchronize_session=False)
         db.session.commit()
         return jsonify({'msg': f'{len(ids)} data alumni berhasil dihapus'}), 200
@@ -119,7 +139,6 @@ def bulk_destroy():
         return jsonify({'msg': str(e)}), 500
 
 
-# --- FITUR BARU: PREVIEW IMPORT ---
 @alumni_bp.route('/preview', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def preview_import():
@@ -129,17 +148,14 @@ def preview_import():
     file = request.files['file']
     try:
         df = pd.read_excel(file)
-        # Convert NaN to None/Empty string agar JSON valid
         df = df.where(pd.notnull(df), None)
 
-        # Mapping kolom Excel ke nama field frontend
-        # Asumsi header excel: 'Nama', 'Status', 'Tahun Lulus', 'Jurusan'
         preview_data = []
         for index, row in df.iterrows():
             preview_data.append({
                 'nama': row.get('Nama', ''),
                 'status': row.get('Status', ''),
-                'angkatan': row.get('Tahun Lulus', ''),
+                'angkatan': str(row.get('Tahun Lulus', '')).replace('.0', ''), # Hapus desimal dari excel
                 'jurusan': row.get('Jurusan', '')
             })
 
@@ -148,7 +164,6 @@ def preview_import():
         return jsonify({"msg": f"Gagal membaca file: {str(e)}"}), 400
 
 
-# --- FITUR BARU: IMPORT FINAL ---
 @alumni_bp.route('/import', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def import_alumni():
@@ -163,7 +178,7 @@ def import_alumni():
             new_alumni = Alumni(
                 name=row.get('Nama'),
                 status=row.get('Status'),
-                batch=row.get('Tahun Lulus'),
+                batch=str(row.get('Tahun Lulus')).replace('.0', ''),
                 major=row.get('Jurusan')
             )
             db.session.add(new_alumni)
@@ -175,14 +190,20 @@ def import_alumni():
         return jsonify({"msg": str(e)}), 500
 
 
-# --- FITUR BARU: DOWNLOAD TEMPLATE ---
 @alumni_bp.route('/template', methods=['GET'], strict_slashes=False)
 def download_template():
-    # Buat file excel sederhana di memory
     df = pd.DataFrame(columns=['Nama', 'Status', 'Tahun Lulus', 'Jurusan'])
+    df.loc[0] = ['Contoh Siswa', 'Bekerja di PT XYZ', '2023', 'Rekayasa Perangkat Lunak']
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Sheet1')
+        
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column('A:A', 30)
+        worksheet.set_column('B:B', 30)
+        worksheet.set_column('C:C', 15)
+        worksheet.set_column('D:D', 30)
+        
     output.seek(0)
 
     return send_file(

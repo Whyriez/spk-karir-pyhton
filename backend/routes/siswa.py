@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Kriteria, NilaiSiswa, User, Jurusan, Pertanyaan, HasilRekomendasi, Periode, RiwayatKelas
+from models import BobotKriteria, db, Kriteria, NilaiSiswa, User, Jurusan, Pertanyaan, HasilRekomendasi, Periode, RiwayatKelas
 import json
 
 siswa_bp = Blueprint('siswa', __name__)
@@ -11,8 +11,9 @@ siswa_bp = Blueprint('siswa', __name__)
 @jwt_required()
 def get_form():
     current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id) # AMBIL DATA USER UNTUK CEK JURUSAN
 
-    # --- CEK ELIGIBILITY (BARU) ---
+    # --- CEK ELIGIBILITY ---
     periode_aktif = Periode.query.filter_by(is_active=True).first()
     is_eligible = False
     status_message = ""
@@ -25,13 +26,24 @@ def get_form():
         ).first()
 
         if riwayat:
-            is_eligible = True
+            is_eligible = True # Sementara diizinkan karena dia siswa aktif
+            
+            # --- GEMBOK BARU: CEK APAKAH BOBOT JURUSAN SUDAH DIHITUNG ---
+            if user and user.jurusan_id:
+                kriteria_count = Kriteria.query.count()
+                bobot_count = BobotKriteria.query.filter_by(jurusan_id=user.jurusan_id).count()
+                
+                # Jika bobot kurang dari jumlah kriteria (berarti admin belum klik Hitung Final untuk jurusan ini)
+                if bobot_count < kriteria_count:
+                    is_eligible = False
+                    status_message = "Akses ditutup sementara. Guru BK atau Kepala Program Keahlian (Kaprodi) jurusan Anda belum menyelesaikan proses penentuan bobot kriteria."
+            # -------------------------------------------------------------
         else:
             status_message = "Anda tidak terdaftar aktif di periode ini (Mungkin sudah Lulus)."
     else:
         status_message = "Sistem sedang tidak menerima penilaian (Periode Non-Aktif)."
 
-    # Jika tidak eligible, langsung return (Hemat resource)
+    # Jika tidak eligible, langsung return (Hemat resource & munculkan UI Kuning di Frontend)
     if not is_eligible:
         return jsonify({
             'is_eligible': False,
@@ -45,15 +57,6 @@ def get_form():
         tampil_di_siswa=True
     ).order_by(Kriteria.kode.asc()).all()
 
-    # Ambil nilai lama jika ada (untuk edit)
-    nilai_lama = NilaiSiswa.query.filter_by(siswa_id=current_user_id).all()
-    # Note: Logic ambil nilai lama mungkin perlu disesuaikan jika ingin per-pertanyaan,
-    # tapi untuk sekarang kita biarkan kosong atau load logic agregat jika perlu.
-    # Namun, karena frontend values sekarang berbasis ID Pertanyaan,
-    # idealnya kita load history jawaban per pertanyaan (jika fitur save draft ada).
-    # Untuk simpelnya, kita return form kosong/default dulu atau nilai agregat.
-
-    # Kita siapkan data kriteria
     data = []
     for k in kriterias:
         # Parsing JSON opsi_pilihan jika berupa string (safety check)

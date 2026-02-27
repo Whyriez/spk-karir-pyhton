@@ -38,7 +38,7 @@ interface Siswa {
 
 interface Jurusan {
     id: number;
-    nama_jurusan: string;
+    nama: string;
 }
 
 export default function AdminSiswaIndex() {
@@ -59,16 +59,18 @@ export default function AdminSiswaIndex() {
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-    // --- STATE PAGINATION & SEARCH ---
+    // --- STATE PAGINATION, SEARCH, & FILTERS ---
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInput, setSearchInput] = useState('');
 
+    // Filter Baru
+    const [filterKelas, setFilterKelas] = useState('');
+    const [filterJurusan, setFilterJurusan] = useState('');
 
     const [processing, setProcessing] = useState(false);
-    // const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     // Form CRUD
     const initialForm = {
@@ -82,11 +84,11 @@ export default function AdminSiswaIndex() {
     const [form, setForm] = useState(initialForm);
 
     // --- FETCH DATA ---
-    const fetchData = async (page = currentPage, search = searchQuery) => {
+    const fetchData = async (page = currentPage, search = searchQuery, kelas = filterKelas, jurusan = filterJurusan) => {
         setLoading(true);
         try {
             const [resSiswa, resJurusan] = await Promise.all([
-                apiClient.get(`/admin/siswa?page=${page}&per_page=10&search=${search}`),
+                apiClient.get(`/admin/siswa?page=${page}&per_page=10&search=${search}&kelas=${kelas}&jurusan_id=${jurusan}`),
                 apiClient.get('/jurusan')
             ]);
             setData(resSiswa.data.data);
@@ -97,7 +99,7 @@ export default function AdminSiswaIndex() {
             setTotalItems(resSiswa.data.meta.total_items);
 
             setJurusans(resJurusan.data.data);
-            setSelectedIds([]); // Reset selection setiap pindah halaman
+            setSelectedIds([]); // Reset selection setiap pindah halaman/filter
         } catch (err) {
             console.error(err);
             Toast.fire({ icon: 'error', title: 'Gagal memuat data.' });
@@ -106,10 +108,10 @@ export default function AdminSiswaIndex() {
         }
     };
 
-    // Panggil ulang jika currentPage atau searchQuery berubah
+    // Panggil ulang jika parameter fetch berubah
     useEffect(() => {
-        fetchData(currentPage, searchQuery);
-    }, [currentPage, searchQuery]);
+        fetchData(currentPage, searchQuery, filterKelas, filterJurusan);
+    }, [currentPage, searchQuery, filterKelas, filterJurusan]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -117,9 +119,12 @@ export default function AdminSiswaIndex() {
         setSearchQuery(searchInput);
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    // Handler Filter Otomatis
+    const handleFilterChange = (type: 'kelas' | 'jurusan', value: string) => {
+        setCurrentPage(1); // Kembali ke halaman 1 tiap ganti filter
+        if (type === 'kelas') setFilterKelas(value);
+        if (type === 'jurusan') setFilterJurusan(value);
+    };
 
     // --- IMPORT HANDLERS ---
     const handlePreview = async () => {
@@ -218,7 +223,6 @@ export default function AdminSiswaIndex() {
 
     // --- CRUD HANDLERS (Standard) ---
     const openModal = (item: any = null) => {
-        // setErrors({});
         if (item) {
             setIsEditMode(true);
             setForm({
@@ -298,8 +302,8 @@ export default function AdminSiswaIndex() {
                     });
                     Toast.fire({ icon: 'success', title: `${selectedIds.length} siswa berhasil dihapus!` });
 
-                    setSelectedIds([]); // Kosongkan centang setelah berhasil
-                    fetchData(currentPage, searchQuery); // Refresh data di halaman saat ini
+                    setSelectedIds([]);
+                    fetchData(currentPage, searchQuery);
                 } catch (error: any) {
                     const msg = error.response?.data?.msg || 'Gagal menghapus data siswa.';
                     MySwal.fire('Error', msg, 'error');
@@ -308,6 +312,22 @@ export default function AdminSiswaIndex() {
                 }
             }
         });
+    };
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage <= 4) {
+                pages.push(1, 2, 3, 4, 5, '...', totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+            }
+        }
+        return pages;
     };
 
     return (
@@ -323,55 +343,79 @@ export default function AdminSiswaIndex() {
 
                     {/* TOOLBAR BULK ACTION */}
                     {selectedIds.length > 0 && (
-                        <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-4 shadow-sm rounded-r flex justify-between items-center animate-pulse">
+                        <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-4 shadow-sm rounded-r flex flex-col md:flex-row justify-between items-center animate-pulse gap-3">
                             <div className="font-bold text-indigo-700">{selectedIds.length} Siswa Dipilih.</div>
-                            <div className="flex gap-2">
-                                {/* Tombol Tinggal saya ubah warnanya jadi kuning (yellow-500) agar beda dengan Hapus */}
+                            <div className="flex gap-2 flex-wrap justify-center">
                                 <button onClick={() => handleBulkAction('Tinggal Kelas')} className="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-yellow-600">Set "Tinggal Kelas"</button>
                                 <button onClick={() => handleBulkAction('Aktif')} className="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-green-700">Set "Naik Kelas"</button>
-
-                                <div className="w-px bg-indigo-200 mx-1"></div> {/* Pembatas Vertikal (Opsional) */}
-
-                                {/* Tombol Hapus Bulk */}
+                                <div className="w-px bg-indigo-200 mx-1 hidden md:block"></div>
                                 <button onClick={handleBulkDelete} className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-red-700">Hapus Terpilih</button>
                             </div>
                         </div>
                     )}
 
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 p-6">
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+
+                        {/* --- TOP HEADER: SEARCH, FILTER, & BUTTONS --- */}
+                        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
                             <div className="flex flex-col">
                                 <span className="text-gray-900 font-bold text-lg whitespace-nowrap">Daftar Siswa</span>
                                 <span className="text-sm text-gray-500">Total: {totalItems} Siswa</span>
                             </div>
 
-                            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                                <form onSubmit={handleSearch} className="flex">
-                                    <input
-                                        type="text"
-                                        placeholder="Cari Nama / NISN..."
-                                        className="border-gray-300 rounded-l-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        value={searchInput}
-                                        onChange={(e) => setSearchInput(e.target.value)}
-                                    />
-                                    <button type="submit" className="bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-300 rounded-r-md px-3 text-gray-600">
-                                        Cari
-                                    </button>
-                                </form>
+                            <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto items-start md:items-center">
 
-                                <div className="flex gap-2">
+                                {/* KELOMPOK PENCARIAN & FILTER */}
+                                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                                    <form onSubmit={handleSearch} className="flex w-full sm:w-auto">
+                                        <input
+                                            type="text"
+                                            placeholder="Cari Nama / NISN..."
+                                            className="border-gray-300 rounded-l-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm w-full sm:w-48"
+                                            value={searchInput}
+                                            onChange={(e) => setSearchInput(e.target.value)}
+                                        />
+                                        <button type="submit" className="bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-300 rounded-r-md px-3 text-gray-600 font-medium transition-colors">
+                                            Cari
+                                        </button>
+                                    </form>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <select
+                                            className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm w-1/3 sm:w-auto text-gray-600 font-medium cursor-pointer"
+                                            value={filterKelas}
+                                            onChange={(e) => handleFilterChange('kelas', e.target.value)}
+                                        >
+                                            <option value="">Semua Kelas</option>
+                                            <option value="10">Kelas 10</option>
+                                            <option value="11">Kelas 11</option>
+                                            <option value="12">Kelas 12</option>
+                                        </select>
+                                        <select
+                                            className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm w-2/3 sm:w-auto max-w-[200px] text-gray-600 font-medium cursor-pointer"
+                                            value={filterJurusan}
+                                            onChange={(e) => handleFilterChange('jurusan', e.target.value)}
+                                        >
+                                            <option value="">Semua Jurusan</option>
+                                            {jurusans.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* KELOMPOK TOMBOL AKSI */}
+                                <div className="flex gap-2 w-full md:w-auto shrink-0 justify-end md:ml-2">
                                     <SecondaryButton onClick={() => setIsImportModalOpen(true)}>Import Excel</SecondaryButton>
-                                    <PrimaryButton onClick={() => openModal()}>+ Tambah Siswa</PrimaryButton>
+                                    <PrimaryButton onClick={() => openModal()}>+ Tambah</PrimaryButton>
                                 </div>
                             </div>
                         </div>
 
+                        {/* --- TABEL DATA --- */}
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-4 w-10">
-                                            <input type="checkbox" className="rounded border-gray-300 text-indigo-600 shadow-sm" onChange={handleSelectAll} checked={data.length > 0 && selectedIds.length === data.length} />
+                                            <input type="checkbox" className="rounded border-gray-300 text-indigo-600 shadow-sm cursor-pointer" onChange={handleSelectAll} checked={data.length > 0 && selectedIds.length === data.length} />
                                         </th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">NISN</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Nama Siswa</th>
@@ -385,12 +429,12 @@ export default function AdminSiswaIndex() {
                                     {loading ? (
                                         <tr><td colSpan={7} className="p-8 text-center text-gray-500">Sedang memuat data...</td></tr>
                                     ) : data.length === 0 ? (
-                                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">Belum ada data siswa.</td></tr>
+                                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">Belum ada data siswa sesuai filter.</td></tr>
                                     ) : (
                                         data.map((item) => (
                                             <tr key={item.id} className={`transition-colors ${selectedIds.includes(item.id) ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}>
                                                 <td className="px-6 py-4">
-                                                    <input type="checkbox" className="rounded border-gray-300 text-indigo-600 shadow-sm" checked={selectedIds.includes(item.id)} onChange={() => handleSelectRow(item.id)} />
+                                                    <input type="checkbox" className="rounded border-gray-300 text-indigo-600 shadow-sm cursor-pointer" checked={selectedIds.includes(item.id)} onChange={() => handleSelectRow(item.id)} />
                                                 </td>
                                                 <td className="px-6 py-4"><span className="font-mono text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-600">{item.username}</span></td>
                                                 <td className="px-6 py-4 text-sm font-bold text-gray-900">{item.name}</td>
@@ -415,47 +459,62 @@ export default function AdminSiswaIndex() {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                        {!loading && totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-md">
+                                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-700">
+                                            Menampilkan halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                            {/* Tombol Prev */}
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                disabled={currentPage === 1}
+                                                className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <span className="sr-only">Previous</span>
+                                                &larr; Prev
+                                            </button>
 
+                                            {/* Deretan Angka & Elipsis */}
+                                            {getPageNumbers().map((page, index) => (
+                                                page === '...' ? (
+                                                    <span key={`ellipsis-${index}`} className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">
+                                                        ...
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => setCurrentPage(page as number)}
+                                                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 transition-colors
+                                                                ${currentPage === page
+                                                                ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                                                                : 'text-gray-900 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                )
+                                            ))}
 
-                            {/* PAGINATION CONTROLS */}
-                            {!loading && totalPages > 1 && (
-                                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-md">
-                                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                                        <div>
-                                            <p className="text-sm text-gray-700">
-                                                Menampilkan halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span>
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                                <button
-                                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                                    disabled={currentPage === 1}
-                                                    className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                                                >
-                                                    <span className="sr-only">Previous</span>
-                                                    &larr; Prev
-                                                </button>
-
-                                                {/* Info Halaman Sederhana */}
-                                                <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300">
-                                                    {currentPage}
-                                                </span>
-
-                                                <button
-                                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                                    disabled={currentPage === totalPages}
-                                                    className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                                                >
-                                                    <span className="sr-only">Next</span>
-                                                    Next &rarr;
-                                                </button>
-                                            </nav>
-                                        </div>
+                                            {/* Tombol Next */}
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                disabled={currentPage === totalPages}
+                                                className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <span className="sr-only">Next</span>
+                                                Next &rarr;
+                                            </button>
+                                        </nav>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -487,6 +546,7 @@ export default function AdminSiswaIndex() {
                                 <InputLabel value="Jurusan" required />
                                 <select value={form.jurusan_id} onChange={e => setForm({ ...form, jurusan_id: e.target.value })} className="w-full border-gray-300 rounded-md shadow-sm">
                                     <option value="">Pilih</option>
+                                    {/* BUG FIX: j.nama -> j.nama_jurusan */}
                                     {jurusans.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
                                 </select>
                             </div>
@@ -520,11 +580,10 @@ export default function AdminSiswaIndex() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6">
-                        {/* ALERT TEMPLATE */}
                         <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-md text-sm text-blue-800 flex justify-between items-center">
                             <span>Gunakan template Excel yang sesuai.</span>
                             <a href="/api/admin/siswa/template" className="font-bold hover:underline flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                 Download Template
                             </a>
                         </div>
@@ -547,7 +606,6 @@ export default function AdminSiswaIndex() {
                             </SecondaryButton>
                         </div>
 
-                        {/* PREVIEW TABLE */}
                         {previewData.length > 0 && (
                             <div className="border rounded-lg overflow-hidden">
                                 <div className="bg-gray-100 px-4 py-2 border-b font-bold text-sm text-gray-700">Preview Data ({previewData.length} Baris)</div>

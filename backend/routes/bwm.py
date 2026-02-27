@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Kriteria, BwmComparison, BobotKriteria, User, Setting, RoleEnum
+from models import db, Kriteria, BwmComparison, BobotKriteria, User, Setting, RoleEnum, Jurusan
 from sqlalchemy import or_
 import math
 import numpy as np
@@ -33,6 +33,38 @@ def get_admin_setting():
         'current_worst': int(worst_setting.value) if worst_setting and worst_setting.value else None,
     })
 
+@bwm_bp.route('/admin/results', methods=['GET'])
+@jwt_required()
+def get_admin_results():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({'msg': 'Unauthorized'}), 403
+
+    from models import Jurusan # Pastikan Jurusan di-import
+    
+    all_jurusan = Jurusan.query.all()
+    kriteria_list = Kriteria.query.all()
+    kriteria_map = {k.id: k.kode for k in kriteria_list}
+
+    hasil = []
+    for jurusan in all_jurusan:
+        # Ambil bobot untuk jurusan ini
+        bobots = BobotKriteria.query.filter_by(jurusan_id=jurusan.id).all()
+        
+        # Jika ada bobotnya, masukkan ke array hasil
+        if bobots:
+            weights = {}
+            for b in bobots:
+                kode = kriteria_map.get(b.kriteria_id)
+                if kode:
+                    weights[kode] = b.nilai_bobot
+            
+            hasil.append({
+                'jurusan': jurusan.nama_jurusan,
+                'weights': weights
+            })
+
+    return jsonify({'hasil': hasil}), 200
 
 @bwm_bp.route('/admin/setting', methods=['POST'])
 @jwt_required()
@@ -150,88 +182,115 @@ def calculate_final_bwm():
     if claims.get('role') != 'admin':
         return jsonify({'msg': 'Unauthorized'}), 403
 
-    # 1. Persiapan Data (Sama seperti preview, tapi Global)
     best_s = Setting.query.filter_by(key='bwm_best_id').first()
     worst_s = Setting.query.filter_by(key='bwm_worst_id').first()
-    
+
     if not best_s or not worst_s:
-        return jsonify({'msg': 'Konfigurasi BWM belum lengkap'}), 400
+        return jsonify({'msg': 'Konfigurasi BWM (Best/Worst) belum lengkap'}), 400
 
     best_id = int(best_s.value)
     worst_id = int(worst_s.value)
 
-    # Ambil semua data comparison dari SELURUH user (digabung jadi satu)
-    comparisons = BwmComparison.query.filter_by(
-        best_criterion_id=best_id, 
-        worst_criterion_id=worst_id
+    # 1. Ambil Data Inputan dari Guru BK (Sifatnya Global untuk semua jurusan)
+    guru_bk_users = User.query.filter_by(role=RoleEnum.pakar, jenis_pakar='gurubk').all()
+    bk_ids = [u.id for u in guru_bk_users]
+
+    bk_comparisons = BwmComparison.query.filter(
+        BwmComparison.best_criterion_id == best_id,
+        BwmComparison.worst_criterion_id == worst_id,
+        BwmComparison.pakar_id.in_(bk_ids)
     ).all()
 
-    if not comparisons:
-        return jsonify({'msg': 'Belum ada data penilaian sama sekali.'}), 400
-
+    # 2. Siapkan data Master Kriteria & Jurusan
+    all_jurusan = Jurusan.query.all()
     all_kriteria = Kriteria.query.all()
     kriteria_map = {str(k.id): k.kode for k in all_kriteria}
     code_to_id = {k.kode: k.id for k in all_kriteria}
-    
-    # Identify Best & Worst Codes
+
     best_obj = Kriteria.query.get(best_id)
     worst_obj = Kriteria.query.get(worst_id)
-    
-    best_code = best_obj.kode
-    worst_code = worst_obj.kode
     criteria_codes = list(kriteria_map.values())
 
-    # 2. Build Maps
-    bto_mapped = {}
-    otw_mapped = {}
+    hasil_per_jurusan = []
+    error_jurusan = []
 
-    for c in comparisons:
-        kid_str = str(c.compared_criterion_id)
-        if kid_str in kriteria_map:
-            code = kriteria_map[kid_str]
-            val = c.value
-            
-            if c.comparison_type.value == 'best_to_others':
-                bto_mapped[code] = val
-            else:
-                otw_mapped[code] = val
-
-    # 3. Hitung Bobot (Solver)
     try:
-        final_weights, cr, ksi = calculate_bwm_weights(
-            criteria_codes, best_code, worst_code, bto_mapped, otw_mapped
-        )
-    except Exception as e:
-        return jsonify({'msg': f"Perhitungan Gagal: {str(e)}. Pastikan data lengkap."}), 400
-
-    # 4. Validasi CR (Optional: Admin bisa override atau tidak)
-    # Jika CR > 0.1, kita tetap simpan tapi beri warning di response
-    warning_msg = None
-    if cr > 0.1:
-        warning_msg = f"Perhatian: Nilai CR {cr:.4f} > 0.1 (Tidak Konsisten). Hasil tetap disimpan."
-
-    # 5. Simpan ke Database (BobotKriteria)
-    try:
-        # Hapus bobot lama (Reset)
+        # Hapus semua bobot lama (Reset) sebelum menghitung ulang
         BobotKriteria.query.delete()
-        
-        # Simpan bobot baru
-        for code, weight in final_weights.items():
-            bk = BobotKriteria(
-                kriteria_id=code_to_id[code],
-                nilai_bobot=weight,
-                jurusan_id=None # Bobot Global
-            )
-            db.session.add(bk)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'msg': 'Perhitungan Selesai & Disimpan!',
-            'cr': cr,
-            'weights': final_weights,
-            'warning': warning_msg
-        }), 200
+
+        # 3. LOOPING PER JURUSAN: Hitung bobot untuk masing-masing jurusan
+        for jurusan in all_jurusan:
+            # Cari akun Kaprodi untuk jurusan ini
+            kaprodi = User.query.filter_by(role=RoleEnum.pakar, jenis_pakar='kaprodi', jurusan_id=jurusan.id).first()
+
+            kaprodi_comparisons = []
+            if kaprodi:
+                kaprodi_comparisons = BwmComparison.query.filter_by(
+                    best_criterion_id=best_id,
+                    worst_criterion_id=worst_id,
+                    pakar_id=kaprodi.id
+                ).all()
+
+            if not kaprodi or not kaprodi_comparisons:
+                continue
+
+            gabungan_comparisons = bk_comparisons + kaprodi_comparisons
+
+            bto_mapped = {}
+            otw_mapped = {}
+
+            for c in gabungan_comparisons:
+                kid_str = str(c.compared_criterion_id)
+                if kid_str in kriteria_map:
+                    code = kriteria_map[kid_str]
+                    val = c.value
+                    if c.comparison_type.value == 'best_to_others':
+                        bto_mapped[code] = val
+                    else:
+                        otw_mapped[code] = val
+
+            # Jika data kosong (Kaprodi/BK belum ngisi sama sekali), catat error
+            if not bto_mapped or not otw_mapped:
+                error_jurusan.append({'jurusan': jurusan.nama_jurusan, 'error': 'Data penilaian belum lengkap (Kosong)'})
+                continue
+
+            # 4. Hitung Algoritma BWM
+            try:
+                final_weights, cr, ksi = calculate_bwm_weights(
+                    criteria_codes, best_obj.kode, worst_obj.kode, bto_mapped, otw_mapped
+                )
+
+                # 5. Simpan Hasilnya dengan JURUSAN_ID
+                for code, weight in final_weights.items():
+                    bk = BobotKriteria(
+                        kriteria_id=code_to_id[code],
+                        nilai_bobot=weight,
+                        jurusan_id=jurusan.id # <--- INI KUNCINYA
+                    )
+                    db.session.add(bk)
+
+                hasil_per_jurusan.append({
+                    'jurusan': jurusan.nama_jurusan,
+                    'cr': cr,
+                    'status': 'Sukses' if cr <= 0.1 else 'CR > 0.1 (Kurang Konsisten)'
+                })
+
+            except Exception as e:
+                error_jurusan.append({'jurusan': jurusan.nama_jurusan, 'error': str(e)})
+
+        # Evaluasi Akhir
+        if len(hasil_per_jurusan) == 0:
+            db.session.rollback()
+            return jsonify({
+                'msg': 'Tidak ada data yang dihitung. Pastikan Guru BK dan setidaknya 1 Kaprodi telah mengisi penilaian.',
+                'errors': error_jurusan
+            }), 400
+        else:
+            db.session.commit()
+            return jsonify({
+                'msg': f'Perhitungan Selesai! Bobot untuk {len(hasil_per_jurusan)} jurusan berhasil disimpan.',
+                'hasil': hasil_per_jurusan
+            }), 200
 
     except Exception as e:
         db.session.rollback()
@@ -258,14 +317,26 @@ def get_pakar_context():
     # 2. Ambil Semua Kriteria
     all_kriteria = Kriteria.query.order_by(Kriteria.kode.asc()).all()
 
-    # --- PERUBAHAN UTAMA DISINI ---
-    # Kita mengambil SEMUA comparison yang ada untuk konteks Best/Worst ini
-    # TANPA memfilter 'pakar_id=user_id'.
-    # Ini membuat Guru BK bisa melihat angka yang diinput Kaprodi.
-    saved_comparisons = BwmComparison.query.filter_by(
+    # 1. Ambil inputan dari user yang sedang login (Pakar terkait)
+    user_comparisons = BwmComparison.query.filter_by(
+        pakar_id=user.id,
         best_criterion_id=global_best.id,
         worst_criterion_id=global_worst.id
     ).all()
+
+    # 2. Ambil inputan dari Guru BK (Sebagai referensi kriteria global)
+    bk_comparisons = []
+    if user.jenis_pakar != 'gurubk':
+        guru_bk = User.query.filter_by(role=RoleEnum.pakar, jenis_pakar='gurubk').first()
+        if guru_bk:
+            bk_comparisons = BwmComparison.query.filter_by(
+                pakar_id=guru_bk.id,
+                best_criterion_id=global_best.id,
+                worst_criterion_id=global_worst.id
+            ).all()
+
+    # Gabungkan data untuk ditampilkan di UI
+    saved_comparisons = bk_comparisons + user_comparisons
 
     saved_best_to_others = {}
     saved_others_to_worst = {}
@@ -384,6 +455,7 @@ def calculate_bwm_weights(criteria_codes, best_code, worst_code, best_to_others,
 @jwt_required()
 def calculate_bwm_preview():
     user_id = get_jwt_identity()
+    user = User.query.get(user_id)
     data = request.get_json()
 
     best_s = Setting.query.filter_by(key='bwm_best_id').first()
@@ -395,11 +467,30 @@ def calculate_bwm_preview():
     best_id = int(best_s.value)
     worst_id = int(worst_s.value)
 
-    # Ambil input raw
+    # 1. Ambil input raw dari Frontend (Data live yang sedang digeser user)
     bto_input = data.get('best_to_others', {})
     otw_input = data.get('others_to_worst', {})
 
-    # PERUBAHAN 3: Filter hanya ID yang punya nilai > 0 (Logic Parsial)
+    # 2. LOGIKA HYBRID REAL-TIME: 
+    # Jika yang mengecek adalah Kaprodi, ambil data Guru BK sebagai pelengkap matriks
+    if user.jenis_pakar == 'kaprodi':
+        guru_bk = User.query.filter_by(role=RoleEnum.pakar, jenis_pakar='gurubk').first()
+        if guru_bk:
+            bk_comparisons = BwmComparison.query.filter_by(
+                pakar_id=guru_bk.id,
+                best_criterion_id=best_id,
+                worst_criterion_id=worst_id
+            ).all()
+
+            # Gabungkan nilai Guru BK ke dalam input kalkulasi jika belum ada
+            for c in bk_comparisons:
+                kid_str = str(c.compared_criterion_id)
+                if c.comparison_type.value == 'best_to_others' and kid_str not in bto_input:
+                    bto_input[kid_str] = c.value
+                elif c.comparison_type.value == 'others_to_worst' and kid_str not in otw_input:
+                    otw_input[kid_str] = c.value
+
+    # 3. Filter hanya ID yang punya nilai > 0
     involved_ids = {best_id, worst_id} # Set, biar unik
     valid_bto = {}
     valid_otw = {}
@@ -414,26 +505,21 @@ def calculate_bwm_preview():
             involved_ids.add(int(kid))
             valid_otw[kid] = int(val)
 
-    # Jika user belum isi cukup data, return null
+    # Jika data kurang (misal Guru BK belum ngisi apa-apa dan Kaprodi maksain ngecek)
     if len(involved_ids) <= 2:
-         return jsonify({'cr': None, 'msg': 'Data belum cukup'}), 200
+         return jsonify({'cr': None, 'msg': 'Data kriteria pelengkap dari Guru BK belum tersedia. CR belum bisa dihitung utuh.'}), 200
 
-    # Ambil Kriteria yang TERLIBAT saja dari DB
     relevant_kriteria = Kriteria.query.filter(Kriteria.id.in_(list(involved_ids))).all()
-    
-    # Mapping
     kriteria_map = {str(k.id): k.kode for k in relevant_kriteria}
     
-    # Pastikan Best/Worst object ada
     best_obj = next((k for k in relevant_kriteria if k.id == best_id), None)
     worst_obj = next((k for k in relevant_kriteria if k.id == worst_id), None)
     
     if not best_obj or not worst_obj:
-        return jsonify({'cr': None, 'msg': 'Referensi hilang'}), 400
+        return jsonify({'cr': None, 'msg': 'Referensi Best/Worst hilang'}), 400
 
     criteria_codes = list(kriteria_map.values())
     
-    # Susun ulang dictionary input menggunakan KODE (bukan ID)
     final_bto = {}
     final_otw = {}
 
@@ -446,14 +532,13 @@ def calculate_bwm_preview():
             final_otw[kriteria_map[kid_str]] = val
 
     try:
-        # Panggil fungsi hitung (pastikan fungsi calculate_bwm_weights sudah Anda import/definisikan)
+        # Eksekusi perhitungan live
         weights, cr, ksi = calculate_bwm_weights(
             criteria_codes, best_obj.kode, worst_obj.kode, final_bto, final_otw
         )
         return jsonify({'cr': cr, 'msg': 'OK'}), 200
     except Exception as e:
-        # Error matematika (misal matriks belum lengkap terbentuk)
-        return jsonify({'msg': str(e), 'cr': None}), 200
+        return jsonify({'msg': "Matriks belum lengkap: " + str(e), 'cr': None}), 200
 
 
 @bwm_bp.route('/save', methods=['POST'])

@@ -21,6 +21,10 @@ def get_siswa():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     search_query = request.args.get('search', '', type=str)
+    
+    # PARAMETER FILTER BARU
+    filter_kelas = request.args.get('kelas', '', type=str)
+    filter_jurusan = request.args.get('jurusan_id', '', type=str)
 
     # 2. Ambil Periode Aktif untuk referensi
     periode_aktif = Periode.query.filter_by(is_active=True).first()
@@ -28,6 +32,18 @@ def get_siswa():
     # 3. Bangun Query
     query = User.query.filter_by(role='siswa')
 
+    # Eksekusi Filter Jurusan
+    if filter_jurusan:
+        query = query.filter(User.jurusan_id == int(filter_jurusan))
+
+    # Eksekusi Filter Kelas (Membutuhkan JOIN dengan RiwayatKelas)
+    if filter_kelas and periode_aktif:
+        query = query.join(RiwayatKelas, User.id == RiwayatKelas.siswa_id).filter(
+            RiwayatKelas.periode_id == periode_aktif.id,
+            RiwayatKelas.tingkat_kelas == filter_kelas
+        )
+
+    # Eksekusi Pencarian Nama/NISN
     if search_query:
         query = query.filter(
             db.or_(
@@ -43,7 +59,7 @@ def get_siswa():
     for s in paginated_siswas.items: # Ambil item pada halaman aktif saja
         jurusan_nama = s.jurusan.nama_jurusan if s.jurusan else '-'
 
-        # LOGIKA BARU: Cari kelas di RiwayatKelas berdasarkan Periode Aktif
+        # Cari kelas di RiwayatKelas berdasarkan Periode Aktif
         kelas_str = '-'
         status_akhir = 'Aktif'
         if periode_aktif:

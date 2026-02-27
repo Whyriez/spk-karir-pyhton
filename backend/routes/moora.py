@@ -26,6 +26,27 @@ def ensure_static_values(user_id):
             db.session.add(NilaiSiswa(siswa_id=user_id, kriteria_id=k.id, nilai_input=val_to_insert))
     db.session.commit()
 
+def get_jurusan_weights(jurusan_id):
+    """
+    Mengambil bobot BWM optimal KHUSUS untuk jurusan siswa.
+    Mengembalikan dict bobot ATAU None jika bobot belum dihitung admin.
+    """
+    kriterias = Kriteria.query.all()
+    weights = {}
+    
+    # Cek apakah bobot untuk jurusan ini sudah ada di database
+    bobot_tersimpan = BobotKriteria.query.filter_by(jurusan_id=jurusan_id).count()
+    
+    # Jika bobot kurang dari jumlah kriteria (berarti belum dihitung/belum lengkap), tolak!
+    if bobot_tersimpan < len(kriterias):
+        return None 
+
+    for k in kriterias:
+        stored = BobotKriteria.query.filter_by(kriteria_id=k.id, jurusan_id=jurusan_id).first()
+        if stored:
+            weights[k.kode] = stored.nilai_bobot
+            
+    return weights
 
 def get_aggregated_weights():
     """Mengambil bobot BWM optimal dari tabel BobotKriteria"""
@@ -43,9 +64,18 @@ def get_aggregated_weights():
 
 def calculate_ranking(periode_id, user_id):
     ensure_static_values(user_id)
-    # siswa = User.query.get(user_id) # Tidak lagi mengambil kelas dari tabel User
+    
+    user = User.query.get(user_id)
+    if not user or not user.jurusan_id:
+        return None, "Siswa tidak memiliki jurusan yang valid."
 
-    # 1. Ambil Kriteria & Config dari DB
+    # 1. Ambil Bobot Khusus Jurusan Ini (Cek Gembok Validasi)
+    bobot_map = get_jurusan_weights(user.jurusan_id)
+    
+    if bobot_map is None:
+        return None, "Mohon maaf, hasil belum bisa ditampilkan karena Admin/Pakar belum menyelesaikan perhitungan bobot prioritas untuk jurusan Anda."
+
+    # 2. Ambil Kriteria & Config dari DB
     all_kriteria = Kriteria.query.order_by(Kriteria.kode).all()
     num_kriteria = len(all_kriteria)
 
@@ -57,34 +87,24 @@ def calculate_ranking(periode_id, user_id):
         if k_obj:
             raw_data[k_obj.kode] = n.nilai_input
 
-    # 2. Ambil Bobot
-    bobot_map = get_aggregated_weights()
-
     # 3. Bentuk Matriks Keputusan (3 Alternatif x N Kriteria)
     alternatif_names = ['Melanjutkan Studi', 'Bekerja', 'Berwirausaha']
-    # Mapping index baris: 0=Studi, 1=Kerja, 2=Wirausaha
     matrix = np.zeros((3, num_kriteria))
 
     for j, k in enumerate(all_kriteria):
         val = raw_data.get(k.kode, 1)  # Nilai default 1
 
-        # Baca Config Dinamis dari Database
         targets = (k.target_jalur or '').lower()
         reverses = (k.jalur_reverse or '').lower()
-        max_scale = k.skala_maks  # Misal 100 utk C1, 5 utk C4
+        max_scale = k.skala_maks
 
-        # Fungsi helper untuk menentukan nilai sel matriks
         def get_val_for_jalur(jalur_name):
-            # 1. Cek apakah kriteria ini relevan untuk jalur ini?
             if 'all' in targets or jalur_name in targets:
-                # 2. Cek apakah nilainya harus dibalik? (Misal Ekonomi utk Kerja)
                 if jalur_name in reverses:
-                    # Rumus Inversi: (Max + 1) - Val. Contoh skala 5: (6 - 1) = 5
                     return (max_scale + 1) - val
                 return val
-            return 1  # Nilai default jika tidak relevan (Netral di MOORA Benefit)
+            return 1
 
-        # Isi Matriks
         matrix[0, j] = get_val_for_jalur('studi')
         matrix[1, j] = get_val_for_jalur('kerja')
         matrix[2, j] = get_val_for_jalur('wirausaha')
@@ -102,7 +122,7 @@ def calculate_ranking(periode_id, user_id):
         yi = 0
         for j in range(num_kriteria):
             code = all_kriteria[j].kode
-            weight = bobot_map.get(code, 0)
+            weight = bobot_map.get(code, 0) # Menggunakan bobot_map yang sudah difilter per jurusan
 
             if all_kriteria[j].atribut.value == 'benefit':
                 yi += norm_matrix[i, j] * weight
@@ -122,14 +142,12 @@ def calculate_ranking(periode_id, user_id):
 
     hasil.keputusan_terbaik = alternatif_names[np.argmax(y_scores)]
 
-    # --- PERBAIKAN: AMBIL KELAS DARI RIWAYAT ---
     riwayat = RiwayatKelas.query.filter_by(siswa_id=user_id, periode_id=periode_id).first()
 
     if riwayat:
         hasil.tingkat_kelas = riwayat.tingkat_kelas
     else:
         hasil.tingkat_kelas = "Unknown"
-        # -------------------------------------------------------------
 
     db.session.commit()
     return hasil, None
@@ -141,63 +159,58 @@ def calculate_ranking(periode_id, user_id):
 @jwt_required()
 def get_result():
     current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id) # Pindahkan query user ke atas sini
+    
     history_id = request.args.get('id')
     hasil = None
     periode_nama = "-"
 
-    # KASUS 1: User minta ID spesifik (Riwayat masa lalu)
     if history_id:
         hasil = HasilRekomendasi.query.filter_by(id=history_id, siswa_id=current_user_id).first()
         if not hasil: return jsonify({'msg': 'Riwayat tidak ditemukan'}), 404
         periode_nama = hasil.periode.nama_periode if hasil.periode else f"Kelas {hasil.tingkat_kelas}"
 
-    # KASUS 2: Default (Buka halaman result)
     else:
         periode_aktif = Periode.query.filter_by(is_active=True).first()
-
-        # --- PERBAIKAN BUG ALUMNI & FRESH STUDENT ---
         is_active_student = False
 
         if periode_aktif:
-            # Cek apakah siswa punya riwayat AKTIF di periode ini?
             riwayat = RiwayatKelas.query.filter_by(
-                siswa_id=current_user_id,
-                periode_id=periode_aktif.id,
-                status_akhir='Aktif'
+                siswa_id=current_user_id, periode_id=periode_aktif.id, status_akhir='Aktif'
             ).first()
             if riwayat:
                 is_active_student = True
 
         if is_active_student:
-            # --- CEK APAKAH SUDAH ISI PENILAIAN? (FIX BUG FRESH STUDENT) ---
-            # Kita cek apakah ada data NilaiSiswa dari inputan user (non-static) untuk siswa ini
-            # Join dengan Kriteria untuk memastikan itu data input_siswa
+            # --- CEK KETERSEDIAAN BOBOT TERLEBIH DAHULU ---
+            if user and user.jurusan_id:
+                kriteria_count = Kriteria.query.count()
+                bobot_count = BobotKriteria.query.filter_by(jurusan_id=user.jurusan_id).count()
+                if bobot_count < kriteria_count:
+                    # Jika bobot belum ada, jangan suruh siswa isi form, tapi beritahu yang sebenarnya
+                    return jsonify({'msg': 'Hasil rekomendasi belum tersedia karena Admin/Kaprodi jurusan Anda belum memfinalisasi perhitungan bobot.'}), 404
+
+            # --- JIKA BOBOT AMAN, BARU CEK APAKAH SISWA SUDAH ISI PENILAIAN ---
             has_input = db.session.query(NilaiSiswa).join(Kriteria).filter(
                 NilaiSiswa.siswa_id == current_user_id,
                 Kriteria.sumber_nilai == 'input_siswa'
             ).first()
 
             if not has_input:
-                # JIKA BELUM INPUT: Jangan hitung!
-                # Frontend akan menerima 404 dan menampilkan "Data belum tersedia"
                 return jsonify({'msg': 'Belum ada data penilaian. Silakan isi kuesioner terlebih dahulu.'}), 404
 
-            # JIKA SUDAH INPUT: Hitung baru/Update (Agar skor selalu sync dengan bobot terbaru)
+            # Hitung baru/Update
             periode_nama = periode_aktif.nama_periode
             hasil, error = calculate_ranking(periode_aktif.id, current_user_id)
             if error: return jsonify({'hasil': None, 'msg': error}), 200
 
         else:
-            # Jika siswa TIDAK aktif (Alumni/Lulus/Belum didaftarkan) -> AMBIL DATA TERAKHIR
-            # Jangan hitung baru agar tidak merusak data periode aktif
-            hasil = HasilRekomendasi.query.filter_by(siswa_id=current_user_id) \
-                .order_by(desc(HasilRekomendasi.id)).first()
-
+            # Alumni / Tidak Aktif ... (Sisa kode biarkan sama)
+            hasil = HasilRekomendasi.query.filter_by(siswa_id=current_user_id).order_by(desc(HasilRekomendasi.id)).first()
             if hasil:
                 periode_nama = hasil.periode.nama_periode if hasil.periode else "-"
             else:
                 return jsonify({'msg': 'Belum ada data hasil penilaian.'}), 404
-        # ---------------------------
 
     # Cari Alumni Relevan
     alumni_list = []
