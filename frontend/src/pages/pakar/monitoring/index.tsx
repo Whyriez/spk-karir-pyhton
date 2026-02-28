@@ -47,12 +47,15 @@ interface PaginationData {
     links?: { url: string | null; label: string; active: boolean }[];
 }
 
-export default function MonitoringIndex() {
+export default function MonitoringPakar() {
     // --- STATE ---
     const [loading, setLoading] = useState(true);
     const [results, setResults] = useState<PaginationData | null>(null);
     const [periodes, setPeriodes] = useState<Periode[]>([]);
     const [jurusans, setJurusans] = useState<Jurusan[]>([]);
+
+    // Cek Role Pakar
+    const [isKaprodi, setIsKaprodi] = useState(false);
 
     // Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -67,8 +70,17 @@ export default function MonitoringIndex() {
     const [catatanInput, setCatatanInput] = useState('');
     const [processing, setProcessing] = useState(false);
 
-    // Ambil Data Jurusan Sekali Saat Mount
+    // Initial Mount: Cek User Role & Fetch Jurusan
     useEffect(() => {
+        // Cek apakah user adalah kaprodi
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const userObj = JSON.parse(userStr);
+            if (userObj.role === 'pakar' && userObj.jenis_pakar === 'kaprodi') {
+                setIsKaprodi(true);
+            }
+        }
+
         apiClient.get('/jurusan').then(res => {
             if (res.data && res.data.data) {
                 setJurusans(res.data.data);
@@ -82,7 +94,8 @@ export default function MonitoringIndex() {
                 params: { 
                     periode_id: selectedPeriode,
                     kelas: selectedKelas,
-                    jurusan_id: selectedJurusan
+                    // Jika Kaprodi, kirim kosong saja, karena backend sudah otomatis mengunci berdasarkan user login
+                    jurusan_id: isKaprodi ? '' : selectedJurusan
                 }
             });
             const data = response.data.data;
@@ -217,7 +230,7 @@ export default function MonitoringIndex() {
                     periode_id: selectedPeriode,
                     status: selectedStatus,
                     kelas: selectedKelas,
-                    jurusan_id: selectedJurusan,
+                    jurusan_id: isKaprodi ? '' : selectedJurusan, // Abaikan jika Kaprodi
                     page: 1
                 }
             });
@@ -237,7 +250,7 @@ export default function MonitoringIndex() {
             fetchData();
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, selectedPeriode, selectedStatus, selectedKelas, selectedJurusan]);
+    }, [searchTerm, selectedPeriode, selectedStatus, selectedKelas, selectedJurusan, isKaprodi]);
 
     // --- HANDLERS ---
     const handlePageChange = (url: string | null) => {
@@ -285,9 +298,10 @@ export default function MonitoringIndex() {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 p-6">
 
-                        {/* --- FILTER SECTION (Diperbarui dgn Layout Grid) --- */}
+                        {/* --- FILTER SECTION --- */}
                         <div className="mb-6 pb-6 border-b border-gray-100">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                            {/* Grid disesuaikan otomatis: Jika Kaprodi (4 kolom), jika bukan (5 kolom) */}
+                            <div className={`grid grid-cols-1 md:grid-cols-2 ${isKaprodi ? 'lg:grid-cols-4' : 'lg:grid-cols-5'} gap-3`}>
                                 <div className="lg:col-span-1">
                                     <input
                                         type="text"
@@ -333,29 +347,35 @@ export default function MonitoringIndex() {
                                         <option value="12">Kelas 12</option>
                                     </select>
                                 </div>
-                                <div className="lg:col-span-1">
-                                    <select
-                                        className="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm truncate"
-                                        value={selectedJurusan}
-                                        onChange={(e) => setSelectedJurusan(e.target.value)}
-                                    >
-                                        <option value="">Semua Jurusan</option>
-                                        {jurusans.map((j) => (
-                                            <option key={j.id} value={j.id}>{j.nama}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                
+                                {/* Dropdown Jurusan di-hide jika yang login adalah Kaprodi */}
+                                {!isKaprodi && (
+                                    <div className="lg:col-span-1">
+                                        <select
+                                            className="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm truncate"
+                                            value={selectedJurusan}
+                                            onChange={(e) => setSelectedJurusan(e.target.value)}
+                                        >
+                                            <option value="">Semua Jurusan</option>
+                                            {jurusans.map((j) => (
+                                                <option key={j.id} value={j.id}>{j.nama}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
                             
                             {/* Tombol PDF di Baris Bawah */}
                             {selectedStatus === 'sudah' && (
-                                <div className="mt-4 flex justify-end gap-2">
+                                <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
                                         onClick={() => handlePrintUAT('pakar')}
                                         className="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-indigo-100 transition ease-in-out duration-150"
                                     >
                                         📄 Unduh PDF Validasi Pakar
                                     </button>
+                                    
+                                    {/* Opsional: Sembunyikan PDF Admin jika yang login bukan Admin/GuruBK jika dirasa kurang relevan untuk Kaprodi, tapi dibiarkan muncul juga tidak apa-apa karena datanya sudah terfilter per-jurusan */}
                                     <button
                                         onClick={() => handlePrintUAT('admin')}
                                         className="inline-flex items-center px-4 py-2 bg-gray-50 text-gray-700 border border-gray-300 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-100 transition ease-in-out duration-150"
@@ -469,7 +489,7 @@ export default function MonitoringIndex() {
                             )}
 
                             {results?.links && results.links.length > 3 && (
-                                <div className="flex gap-1">
+                                <div className="flex gap-1 flex-wrap">
                                     {results.links.map((link, k) => {
                                         if (!link.url && !link.label) return null;
 

@@ -287,7 +287,7 @@ export default function AlumniIndex() {
                 </div>
             </Header>
 
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
                     {/* TOOLBAR BULK ACTION */}
@@ -464,7 +464,7 @@ export default function AlumniIndex() {
             {/* MODAL FORM CRUD */}
             <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
                 <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
-                    <div className="flex-none flex items-center justify-between px-6 py-4 border-b bg-white">
+                    <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white">
                         <h2 className="text-lg font-bold text-gray-900">{isEditMode ? "Edit Data Alumni" : "Tambah Alumni Baru"}</h2>
                         <button type="button" onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -496,7 +496,7 @@ export default function AlumniIndex() {
                             </div>
                         </div>
                     </div>
-                    <div className="flex-none flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+                    <div className="flex-none flex justify-end gap-3 px-6 py-4 border-t border-gray-300 bg-gray-50 rounded-b-lg">
                         <SecondaryButton type="button" onClick={() => setIsModalOpen(false)}>Batal</SecondaryButton>
                         <PrimaryButton disabled={processing}>{processing ? 'Menyimpan...' : 'Simpan Data'}</PrimaryButton>
                     </div>
@@ -506,7 +506,7 @@ export default function AlumniIndex() {
             {/* MODAL IMPORT EXCEL */}
             <Modal show={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} maxWidth="2xl">
                 <form onSubmit={handleImportSubmit} className="flex flex-col max-h-[85vh]">
-                    <div className="flex-none flex items-center justify-between px-6 py-4 border-b bg-white">
+                    <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white">
                         <h2 className="text-lg font-bold text-gray-900">Import Data Alumni</h2>
                         <button type="button" onClick={() => setIsImportModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -557,7 +557,7 @@ export default function AlumniIndex() {
                             </div>
                         )}
                     </div>
-                    <div className="flex-none flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+                    <div className="flex-none flex justify-end gap-3 px-6 py-4 border-t border-gray-300 bg-gray-50 rounded-b-lg">
                         <SecondaryButton type="button" onClick={() => setIsImportModalOpen(false)}>Batal</SecondaryButton>
                         <PrimaryButton disabled={processing || (previewData.length === 0 && isImportModalOpen && !importFile)} className={previewData.length === 0 ? "opacity-75" : ""}>
                             {processing ? "Mengupload..." : "Import Sekarang"}

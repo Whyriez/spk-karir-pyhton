@@ -60,6 +60,10 @@ export default function Register() {
             if (response.ok) {
                 // Registrasi Sukses & Langsung Auto-Login
                 localStorage.setItem('token', result.token);
+                if (result.refresh_token) {
+                    localStorage.setItem('refresh_token', result.refresh_token);
+                }
+                
                 localStorage.setItem('user', JSON.stringify(result.user));
                 localStorage.setItem('role', result.user.role);
 

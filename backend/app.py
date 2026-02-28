@@ -19,6 +19,7 @@ from routes.nilai_static import nilai_static_bp
 from routes.admin_siswa import admin_siswa_bp
 from routes.admin_pakar import admin_pakar_bp
 from routes.simulation import simulation_bp
+from routes.admin_users import admin_users_bp
 
 from command import seed_db, migrate_fresh
 # Import konfigurasi dan database yang sudah kita siapkan
@@ -69,6 +70,7 @@ app.register_blueprint(nilai_static_bp, url_prefix='/api/nilai-static')
 app.register_blueprint(admin_siswa_bp, url_prefix='/api/admin/siswa')
 app.register_blueprint(admin_pakar_bp, url_prefix='/api/admin/pakar')
 app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
+app.register_blueprint(admin_users_bp, url_prefix='/api/admin/users')
 
 
 

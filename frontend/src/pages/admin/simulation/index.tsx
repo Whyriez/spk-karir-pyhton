@@ -14,7 +14,7 @@ export default function SimulationIndex() {
                 </div>
             </Header>
 
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* TABS NAVIGATION */}
                     <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg mb-6 w-fit overflow-x-auto">
@@ -156,7 +156,7 @@ function MOORASimulation() {
             <div>
                 <h3 className="font-bold text-gray-800 mb-4">Input Matriks & Bobot Manual</h3>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 border text-sm">
+                    <table className="min-w-full divide-y divide-gray-200 border border-gray-300 text-sm">
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="p-3 text-left">Alt</th>
@@ -169,7 +169,7 @@ function MOORASimulation() {
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y">
+                        <tbody className="bg-white divide-y divide-gray-300">
                             {alternatives.map((alt, r) => (
                                 <tr key={r}>
                                     <td className="p-3 font-medium">{alt}</td>
@@ -191,7 +191,7 @@ function MOORASimulation() {
                     <h3 className="font-bold text-gray-800">Hasil Perankingan</h3>
                     <div className="grid gap-3">
                         {result.ranking.map((item: any) => (
-                            <div key={item.rank} className="bg-white border rounded p-3 flex justify-between items-center shadow-sm">
+                            <div key={item.rank} className="bg-white border border-gray-200 rounded p-3 flex justify-between items-center shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <span className="bg-indigo-600 text-white w-8 h-8 flex items-center justify-center rounded-full font-bold">#{item.rank}</span>
                                     <span className="font-bold">{item.name}</span>
@@ -255,10 +255,10 @@ function IntegratedSimulation() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* --- KOLOM KIRI: INPUT DATA --- */}
-                <div className="space-y-6 border-r pr-6">
+                <div className="space-y-6 border-r border-gray-300 pr-6">
 
                     {/* INPUT TAHAP 1: BWM */}
-                    <div className="bg-gray-50 p-4 rounded border">
+                    <div className="bg-gray-50 p-4 rounded border border-gray-300">
                         <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded mb-2 inline-block">TAHAP 1</span>
                         <h4 className="font-bold text-gray-700 mb-4">Preferensi Pakar (BWM)</h4>
 
@@ -296,7 +296,7 @@ function IntegratedSimulation() {
                     </div>
 
                     {/* INPUT TAHAP 2: MOORA */}
-                    <div className="bg-gray-50 p-4 rounded border">
+                    <div className="bg-gray-50 p-4 rounded border border-gray-300">
                         <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded mb-2 inline-block">TAHAP 2</span>
                         <h4 className="font-bold text-gray-700 mb-4">Data Nilai Siswa (MOORA)</h4>
 

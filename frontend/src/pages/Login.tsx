@@ -40,6 +40,10 @@ export default function Login() {
             if (response.ok) {
                 // Login Sukses - Simpan data
                 localStorage.setItem('token', result.token);
+                if (result.refresh_token) {
+                    localStorage.setItem('refresh_token', result.refresh_token);
+                }
+                
                 localStorage.setItem('user', JSON.stringify(result.user));
                 localStorage.setItem('role', result.user.role); // Simpan role juga
 
@@ -78,7 +82,7 @@ export default function Login() {
 
     return (
         <div
-            className="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gradient-to-br from-blue-500 to-indigo-700">
+            className="min-h-screen px-4 sm:px-8 flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gradient-to-br from-blue-500 to-indigo-700">
             {/* Logo atau Judul */}
             <div className="text-white text-2xl text-center font-bold mb-4">
                 Sistem Pendukung Keputusan <br /> Penentuan Karir {schoolName}

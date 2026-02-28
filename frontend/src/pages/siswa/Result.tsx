@@ -146,7 +146,7 @@ export default function ResultSiswa() {
     return (
         <div>
             <Header><h2 className="font-semibold text-xl text-gray-800 leading-tight">Laporan Hasil Analisis Karir</h2></Header>
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
                     {/* PERIODE INFO */}
@@ -253,7 +253,7 @@ export default function ResultSiswa() {
                         {/* DETAIL SKOR MOORA (KANAN)  */}
                         <div className="space-y-6">
                             <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
-                                <h3 className="font-bold text-gray-800 mb-6 pb-2 border-b">Detail Skor MOORA</h3>
+                                <h3 className="font-bold text-gray-800 mb-6 pb-2 border-b border-gray-300">Detail Skor MOORA</h3>
                                 <div className="space-y-6">
                                     {[
                                         { label: 'Studi Lanjut', key: 'studi', color: 'bg-indigo-600', text: 'text-indigo-600' },

@@ -216,7 +216,7 @@ export default function BwmInput() {
             <Header>
                 <h2 className="font-semibold text-xl text-gray-800">Input BWM (Sesuai FGD)</h2>
             </Header>
-            <div className="py-12 px-3">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
                     {/* INFO ROLE */}

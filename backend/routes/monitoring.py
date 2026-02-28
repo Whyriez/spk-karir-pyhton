@@ -1,6 +1,6 @@
 import json
 from flask import Blueprint, request, jsonify, url_for
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from sqlalchemy import or_, and_, desc, asc
 from models import db, User, HasilRekomendasi, Periode, Jurusan, RoleEnum, RiwayatKelas, NilaiSiswa, Kriteria, NilaiStaticJurusan
 
@@ -12,14 +12,12 @@ def paginate_response(pagination, endpoint, **kwargs):
     Helper untuk membuat format pagination mirip Laravel
     """
     links = []
-    # Link Previous
     links.append({
         'url': url_for(endpoint, page=pagination.prev_num, **kwargs) if pagination.has_prev else None,
         'label': '&laquo; Previous',
         'active': False
     })
 
-    # Simple Links (1, 2, 3...)
     for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2):
         if page_num:
             links.append({
@@ -30,7 +28,6 @@ def paginate_response(pagination, endpoint, **kwargs):
         else:
             links.append({'url': None, 'label': '...', 'active': False})
 
-    # Link Next
     links.append({
         'url': url_for(endpoint, page=pagination.next_num, **kwargs) if pagination.has_next else None,
         'label': 'Next &raquo;',
@@ -42,7 +39,7 @@ def paginate_response(pagination, endpoint, **kwargs):
         'last_page': pagination.pages,
         'per_page': pagination.per_page,
         'total': pagination.total,
-        'from': (pagination.page - 1) * pagination.per_page + 1,
+        'from': (pagination.page - 1) * pagination.per_page + 1 if pagination.total > 0 else 0,
         'to': min(pagination.page * pagination.per_page, pagination.total),
         'links': links
     }
@@ -54,7 +51,6 @@ def get_chart_data():
     claims = get_jwt()
     current_user_id = claims.get('id')
 
-    # Ambil semua riwayat hasil urut berdasarkan periode
     history = HasilRekomendasi.query.filter_by(siswa_id=current_user_id) \
         .join(Periode) \
         .order_by(asc(Periode.id)).all()
@@ -65,7 +61,6 @@ def get_chart_data():
     wirausaha_scores = []
 
     for h in history:
-        # Gunakan nama periode atau tingkat kelas sebagai label X-axis
         labels.append(h.periode.nama_periode if h.periode else f"Kelas {h.tingkat_kelas}")
         studi_scores.append(round(h.skor_studi, 4))
         kerja_scores.append(round(h.skor_kerja, 4))
@@ -85,21 +80,35 @@ def get_chart_data():
 @jwt_required()
 def index():
     claims = get_jwt()
-    if claims.get('role') not in ['admin', 'pakar']:
+    current_user_id = get_jwt_identity()
+    role = claims.get('role')
+    
+    if role not in ['admin', 'pakar']:
         return jsonify({'msg': 'Akses ditolak'}), 403
+
+    is_kaprodi = False
+    kaprodi_jurusan_id = None
+    if role == 'pakar':
+        current_user = User.query.get(current_user_id)
+        if current_user and current_user.jenis_pakar == 'kaprodi':
+            is_kaprodi = True
+            kaprodi_jurusan_id = current_user.jurusan_id
 
     # 1. Ambil Parameter
     search = request.args.get('search', '')
-    status = request.args.get('status', 'sudah')  # Default 'sudah'
+    status = request.args.get('status', 'sudah') 
     periode_id = request.args.get('periode_id')
     page = request.args.get('page', 1, type=int)
+    
+    # --- FILTER BARU ---
+    filter_jurusan_id = request.args.get('jurusan_id', type=int)
+    filter_kelas = request.args.get('kelas', '')
 
     # 2. Tentukan Periode
     if periode_id:
         periode = Periode.query.get(periode_id)
     else:
         periode = Periode.query.filter_by(is_active=True).first()
-        # Jika tidak ada yang aktif, ambil yang terakhir dibuat
         if not periode:
             periode = Periode.query.order_by(desc(Periode.id)).first()
 
@@ -111,9 +120,6 @@ def index():
 
     if status == 'sudah':
         # --- KASUS 1: SUDAH MENGISI ---
-        # Data diambil dari tabel HasilRekomendasi
-        # Kelas diambil dari kolom 'tingkat_kelas' di tabel HasilRekomendasi (Snapshot)
-
         query = HasilRekomendasi.query.join(User).join(Jurusan, User.jurusan_id == Jurusan.id)
 
         if current_periode_id:
@@ -125,7 +131,16 @@ def index():
                 User.nisn.ilike(f'%{search}%')
             ))
 
-        # Urutkan berdasarkan waktu pengisian terbaru
+        # Filter Tambahan (Kelas & Jurusan)
+        if filter_kelas:
+            query = query.filter(HasilRekomendasi.tingkat_kelas == filter_kelas)
+        if filter_jurusan_id:
+            query = query.filter(User.jurusan_id == filter_jurusan_id)
+
+        # GEMBOK FILTER KAPRODI (Akan menimpa filter_jurusan_id jika user adalah kaprodi)
+        if is_kaprodi and kaprodi_jurusan_id:
+            query = query.filter(User.jurusan_id == kaprodi_jurusan_id)
+
         pagination = query.order_by(desc(HasilRekomendasi.created_at)) \
             .paginate(page=page, per_page=10, error_out=False)
 
@@ -139,7 +154,6 @@ def index():
                         'nama_jurusan': item.siswa.jurusan.nama_jurusan if item.siswa.jurusan else '-'
                     }
                 },
-                # Disini kita ambil dari snapshot hasil, bukan dari user
                 'tingkat_kelas': item.tingkat_kelas or '-',
                 'keputusan_terbaik': item.keputusan_terbaik,
                 'skor_studi': item.skor_studi,
@@ -150,14 +164,9 @@ def index():
 
     else:
         # --- KASUS 2: BELUM MENGISI ---
-        # Data diambil dari tabel User
-        # Kelas diambil dari tabel RiwayatKelas (Join berdasarkan periode)
-
-        # Subquery: Ambil ID siswa yang SUDAH mengisi di periode ini
         subquery = db.session.query(HasilRekomendasi.siswa_id) \
             .filter(HasilRekomendasi.periode_id == current_periode_id)
 
-        # Query Utama: User + Join RiwayatKelas
         query = db.session.query(User, RiwayatKelas.tingkat_kelas) \
             .outerjoin(RiwayatKelas, and_(
             RiwayatKelas.siswa_id == User.id,
@@ -165,7 +174,7 @@ def index():
         )) \
             .join(Jurusan, User.jurusan_id == Jurusan.id) \
             .filter(User.role == RoleEnum.siswa) \
-            .filter(~User.id.in_(subquery))  # Filter NOT IN
+            .filter(~User.id.in_(subquery))
 
         if search:
             query = query.filter(or_(
@@ -173,8 +182,16 @@ def index():
                 User.nisn.ilike(f'%{search}%')
             ))
 
-        # Pagination manual karena kita pakai session.query tuple (User, tingkat_kelas)
-        # Flask-SQLAlchemy paginate biasanya untuk Model objects, tapi bisa handle query object juga
+        # Filter Tambahan (Kelas & Jurusan)
+        if filter_kelas:
+            query = query.filter(RiwayatKelas.tingkat_kelas == filter_kelas)
+        if filter_jurusan_id:
+            query = query.filter(User.jurusan_id == filter_jurusan_id)
+
+        # GEMBOK FILTER KAPRODI
+        if is_kaprodi and kaprodi_jurusan_id:
+            query = query.filter(User.jurusan_id == kaprodi_jurusan_id)
+
         pagination = query.order_by(User.name.asc()) \
             .paginate(page=page, per_page=10, error_out=False)
 
@@ -186,17 +203,22 @@ def index():
                 'jurusan': {
                     'nama_jurusan': user.jurusan.nama_jurusan if user.jurusan else '-'
                 },
-                # Ambil kelas dari hasil Join RiwayatKelas
                 'kelas': tingkat_kelas if tingkat_kelas else '-',
                 'status': 'Belum Mengisi'
             })
 
     # 4. Format Pagination Response
-    response_results = paginate_response(pagination, 'monitoring.index', search=search, status=status,
-                                         periode_id=current_periode_id)
+    response_results = paginate_response(
+        pagination, 'monitoring.index', 
+        search=search, 
+        status=status,
+        periode_id=current_periode_id,
+        jurusan_id=filter_jurusan_id,
+        kelas=filter_kelas
+    )
     response_results['data'] = data_items
 
-    # 5. List Periode untuk Dropdown
+    # 5. List Periode
     all_periodes = Periode.query.order_by(desc(Periode.is_active), desc(Periode.nama_periode)).all()
     periodes_data = [{'id': p.id, 'nama_periode': p.nama_periode, 'is_active': p.is_active} for p in all_periodes]
 
@@ -232,8 +254,20 @@ def update_catatan(id):
 @jwt_required()
 def export_uat():
     claims = get_jwt()
-    if claims.get('role') not in ['admin', 'pakar']:
+    current_user_id = get_jwt_identity()
+    role = claims.get('role')
+
+    if role not in ['admin', 'pakar']:
         return jsonify({'msg': 'Akses ditolak'}), 403
+
+    # --- CEK APAKAH USER ADALAH KAPRODI ---
+    is_kaprodi = False
+    kaprodi_jurusan_id = None
+    if role == 'pakar':
+        current_user = User.query.get(current_user_id)
+        if current_user and current_user.jenis_pakar == 'kaprodi':
+            is_kaprodi = True
+            kaprodi_jurusan_id = current_user.jurusan_id
 
     periode_id = request.args.get('periode_id')
     
@@ -246,14 +280,16 @@ def export_uat():
 
     current_periode_id = periode.id if periode else None
 
-    # Hanya ambil siswa yang sudah ada hasil rekomendasi
     query = HasilRekomendasi.query.join(User).join(Jurusan, User.jurusan_id == Jurusan.id)
+    
     if current_periode_id:
         query = query.filter(HasilRekomendasi.periode_id == current_periode_id)
 
+    # GEMBOK FILTER KAPRODI UNTUK EXPORT UAT
+    if is_kaprodi and kaprodi_jurusan_id:
+        query = query.filter(User.jurusan_id == kaprodi_jurusan_id)
+
     results = query.order_by(User.name.asc()).all()
-    
-    # Ambil semua Kriteria yang ada untuk menjadi template perulangan
     semua_kriteria = Kriteria.query.order_by(Kriteria.id.asc()).all()
 
     data_items = []
@@ -263,9 +299,7 @@ def export_uat():
         for kriteria in semua_kriteria:
             nilai_angka = None
 
-            # --- PENGECEKAN SUMBER NILAI ---
             if kriteria.sumber_nilai.name == 'static_jurusan':
-                # Jika static, ambil dari tabel NilaiStaticJurusan berdasarkan Jurusan ID siswa
                 nsj = NilaiStaticJurusan.query.filter_by(
                     jurusan_id=item.siswa.jurusan_id, 
                     kriteria_id=kriteria.id
@@ -273,7 +307,6 @@ def export_uat():
                 if nsj is not None:
                     nilai_angka = nsj.nilai
             else:
-                # Jika input_siswa, ambil dari tabel NilaiSiswa berdasarkan Siswa ID
                 ns = NilaiSiswa.query.filter_by(
                     siswa_id=item.siswa.id, 
                     kriteria_id=kriteria.id
@@ -281,20 +314,14 @@ def export_uat():
                 if ns is not None:
                     nilai_angka = ns.nilai_input
 
-            # Jika data tidak ada di kedua tabel, lewati kriteria ini
             if nilai_angka is None:
                 continue
 
-            # 1. Format angka dasar (hilangkan .0 jika float bulat, misal 89.0 jadi 89)
             str_nilai = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
             display_text = str_nilai
-
-            # 2. Ambil string tipe input
             tipe_input_str = str(kriteria.tipe_input).split('.')[-1]
-
             label_ditemukan = ""
 
-            # --- SKENARIO 1: TIPE LIKERT ---
             if tipe_input_str == 'likert':
                 likert_map = {
                     1: "Sangat Kurang / Sangat Rendah",
@@ -305,10 +332,8 @@ def export_uat():
                 }
                 label_ditemukan = likert_map.get(int(nilai_angka), "")
 
-            # --- SKENARIO 2: TIPE SELECT ---
             elif tipe_input_str == 'select' and kriteria.opsi_pilihan:
                 opsi = kriteria.opsi_pilihan
-                
                 if isinstance(opsi, str):
                     try:
                         opsi = json.loads(opsi)
@@ -320,7 +345,6 @@ def export_uat():
                         if isinstance(opt, dict):
                             opt_val = opt.get('val', opt.get('value', opt.get('id')))
                             opt_label = opt.get('label', opt.get('keterangan', opt.get('text')))
-                            
                             if opt_val is not None:
                                 try:
                                     if float(opt_val) == float(nilai_angka):
@@ -333,7 +357,6 @@ def export_uat():
                     val_key = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
                     label_ditemukan = opsi.get(val_key, opsi.get(str(nilai_angka), ''))
 
-            # 3. Gabungkan angka dan label jika ditemukan
             if label_ditemukan:
                 display_text = f"{str_nilai} ({label_ditemukan})"
 

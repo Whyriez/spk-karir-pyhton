@@ -380,7 +380,7 @@ export default function InputDataSiswa() {
             <Header>
                 <h2 className="font-semibold text-xl text-gray-800">Input Data Siswa</h2>
             </Header>
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-5xl mx-auto sm:px-6 lg:px-8">
                     <form onSubmit={submit} className="space-y-8">
 

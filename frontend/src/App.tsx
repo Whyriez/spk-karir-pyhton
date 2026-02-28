@@ -27,6 +27,9 @@ import PakarIndex from "./pages/admin/pakar";
 import SimulationIndex from "./pages/admin/simulation";
 import { LayoutProvider } from './contexts/LayoutProvider.tsx';
 import Register from './pages/Register.tsx';
+import MonitoringPakar from './pages/pakar/monitoring/index.tsx';
+import AdminUsersIndex from './pages/admin/admin_users/index.tsx';
+import Profile from './pages/Profile.tsx';
 
 
 
@@ -64,6 +67,7 @@ function App() {
                         <Route path="/dashboard" element={
                             <ProtectedRoute><Dashboard /></ProtectedRoute>
                         } />
+                        <Route path="/profile" element={<Profile />} />
 
                         <Route path="/admin/simulation" element={<SimulationIndex />} />
 
@@ -77,9 +81,11 @@ function App() {
                         <Route path="/admin/bwm/setting" element={<ProtectedRoute roles={['admin']}><BwmSetting /></ProtectedRoute>} />
                         <Route path="/admin/siswa" element={<ProtectedRoute roles={['admin']}><AdminSiswaIndex /></ProtectedRoute>} />
                         <Route path="/admin/pakar" element={<ProtectedRoute roles={['admin']}><PakarIndex /></ProtectedRoute>} />
+                        <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><AdminUsersIndex /></ProtectedRoute>} />
 
                         {/* PAKAR ROUTES */}
                         <Route path="/pakar/bwm" element={<ProtectedRoute roles={['pakar']}><BwmInput /></ProtectedRoute>} />
+                        <Route path="/pakar/monitoring" element={<ProtectedRoute roles={['pakar']}><MonitoringPakar /></ProtectedRoute>} />
                         <Route path="/pakar/kriteria" element={<ProtectedRoute roles={['pakar']}><KriteriaPakar /></ProtectedRoute>} />
                         <Route path="/pakar/jurusan" element={<ProtectedRoute roles={['pakar']}><JurusanPakarIndex /></ProtectedRoute>} />
 

@@ -193,7 +193,7 @@ export default function Dashboard() {
                         Dashboard {user.role === 'admin' ? 'Admin' : (user.role === 'pakar' ? 'Pakar' : 'Siswa')}
                     </h2>
                 </Header>
-                <div className="py-12">
+                <div className="py-8 px-4 sm:px-8">
                     <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
                         {/* A. WELCOME BANNER */}
@@ -452,7 +452,7 @@ export default function Dashboard() {
                     Dashboard {user.role === 'admin' ? 'Admin' : (user.role === 'pakar' ? 'Pakar' : 'Siswa')}
                 </h2>
             </Header>
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
                     {/* STATS CARDS */}
@@ -592,7 +592,7 @@ export default function Dashboard() {
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-gray-800">Aktifitas Penilaian Terbaru</h3>
-                            <Link to="/admin/monitoring"
+                            <Link to={`/${user.role}/monitoring`}
                                   className="text-sm text-indigo-600 hover:text-indigo-900 font-medium">Lihat
                                 Semua &rarr;</Link>
                         </div>

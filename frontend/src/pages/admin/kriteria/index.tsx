@@ -357,7 +357,7 @@ export default function KriteriaIndex() {
                 </div>
             </Header>
 
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 p-6">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
@@ -536,7 +536,7 @@ export default function KriteriaIndex() {
                 <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
 
                     {/* HEADER */}
-                    <div className="flex-none flex items-center justify-between px-8 py-5 border-b bg-white">
+                    <div className="flex-none flex items-center justify-between px-8 py-5 border-b border-gray-300 bg-white">
                         <div>
                             <h2 className="text-xl font-bold text-gray-800">
                                 {isEditMode ? 'Edit Kriteria' : 'Tambah Kriteria Baru'}
@@ -806,7 +806,7 @@ export default function KriteriaIndex() {
                     </div>
 
                     {/* FOOTER */}
-                    <div className="flex-none flex justify-end gap-4 px-8 py-4 border-t bg-gray-50 rounded-b-lg">
+                    <div className="flex-none flex justify-end gap-4 px-8 py-4 border-t border-gray-300 bg-gray-50 rounded-b-lg">
                         <SecondaryButton type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2">
                             Batal
                         </SecondaryButton>

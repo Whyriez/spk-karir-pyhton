@@ -132,7 +132,7 @@ export default function Settings() {
                     Pengaturan Sekolah
                 </h2>
             </Header>
-            <div className="py-12">
+            <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200">
                         {/* Header Section */}
@@ -153,7 +153,7 @@ export default function Settings() {
 
                             {/* SECTION 0: LOGO UPLOAD (BARU) */}
                             <div className="flex items-center gap-6 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50/50">
-                                <div className="w-20 h-20 bg-white border rounded-lg flex items-center justify-center overflow-hidden shadow-sm relative">
+                                <div className="w-20 h-20 bg-white border border-gray-300 rounded-lg flex items-center justify-center overflow-hidden shadow-sm relative">
                                     {logoPreview ? (
                                         <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
                                     ) : (
