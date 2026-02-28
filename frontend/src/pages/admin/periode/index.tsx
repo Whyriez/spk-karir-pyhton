@@ -5,7 +5,7 @@ import SecondaryButton from '@/components/SecondaryButton';
 import Modal from '@/components/Modal';
 import TextInput from '@/components/TextInput';
 import InputLabel from '@/components/InputLabel';
-import Checkbox from '@/components/Checkbox'; // Pastikan komponen ini ada
+import Checkbox from '@/components/Checkbox';
 import apiClient from "@/lib/axios";
 import Header from "@/components/Header";
 import Swal from 'sweetalert2';
@@ -31,34 +31,47 @@ interface Periode {
     nama_periode: string;
     is_active: boolean;
     jumlah_siswa: number;
-    is_promotion_period?: boolean; // Tambahan field dari backend
+    is_promotion_period?: boolean;
 }
 
 export default function PeriodeIndex() {
+    // --- STATE UTAMA ---
     const [periodes, setPeriodes] = useState<Periode[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Modal State
+    // --- STATE PAGINATION & SEARCH ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+
+    // --- STATE MODAL CRUD ---
     const [showModal, setShowModal] = useState(false);
-    
-    // Menggunakan Object State agar lebih rapi
     const [form, setForm] = useState({
         nama_periode: '',
         is_promotion_period: false
     });
-    
     const [editingId, setEditingId] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
-
-    // Validasi State
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     // --- FETCH DATA ---
-    const fetchData = async () => {
+    const fetchData = async (page = currentPage, search = searchQuery) => {
         setLoading(true);
         try {
-            const res = await apiClient.get('/periode');
-            setPeriodes(res.data.periodes);
+            const res = await apiClient.get(`/periode?page=${page}&per_page=10&search=${search}`);
+            
+            if (res.data.meta) {
+                setPeriodes(res.data.periodes);
+                setCurrentPage(res.data.meta.current_page);
+                setTotalPages(res.data.meta.total_pages);
+                setTotalItems(res.data.meta.total_items);
+            } else {
+                setPeriodes(res.data.periodes);
+                setTotalItems(res.data.periodes.length);
+                setTotalPages(1);
+            }
         } catch (err) {
             console.error(err);
             Toast.fire({ icon: 'error', title: 'Gagal memuat data periode.' });
@@ -68,15 +81,36 @@ export default function PeriodeIndex() {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        fetchData(currentPage, searchQuery);
+    }, [currentPage, searchQuery]);
+
+    // --- LOGIKA PAGINATION ANGKA ---
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage <= 4) {
+                pages.push(1, 2, 3, 4, 5, '...', totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+            }
+        }
+        return pages;
+    };
+
+    // --- HANDLERS SEARCH ---
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentPage(1);
+        setSearchQuery(searchInput);
+    };
 
     // --- LOGIKA AKTIVASI & KENAIKAN KELAS ---
     const handleActivate = async (periode: Periode) => {
-        // Cek apakah ini periode "Kenaikan Kelas" berdasarkan flag dari database
         const isPromotion = periode.is_promotion_period;
-
-        // Konfigurasi pesan alert
         const title = isPromotion ? 'Ganti Tahun Ajaran (Naik Kelas)?' : 'Ganti Semester?';
         const text = isPromotion
             ? `Anda akan mengaktifkan "${periode.nama_periode}". Sistem akan memproses KENAIKAN KELAS (10->11, 11->12) untuk siswa yang statusnya 'Aktif'.`
@@ -96,7 +130,6 @@ export default function PeriodeIndex() {
             cancelButtonText: 'Batal'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                // Loading screen
                 MySwal.fire({
                     title: 'Sedang Memproses...',
                     text: 'Mohon tunggu, sedang mengatur data kelas siswa.',
@@ -109,8 +142,7 @@ export default function PeriodeIndex() {
                 try {
                     const res = await apiClient.post(`/periode/${periode.id}/activate`);
                     MySwal.close(); 
-
-                    await fetchData();
+                    await fetchData(currentPage, searchQuery);
 
                     MySwal.fire({
                         icon: 'success',
@@ -172,7 +204,6 @@ export default function PeriodeIndex() {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        // Simple Validation
         if (!form.nama_periode.trim()) {
             setErrors({ nama: 'Nama periode wajib diisi.' });
             return;
@@ -217,9 +248,7 @@ export default function PeriodeIndex() {
                         <div className="flex">
                             <div className="flex-shrink-0">
                                 <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd"
-                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                        clipRule="evenodd" />
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                 </svg>
                             </div>
                             <div className="ml-3">
@@ -231,18 +260,39 @@ export default function PeriodeIndex() {
                     </div>
 
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 p-6">
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-                                <div className="text-gray-900 font-bold text-lg whitespace-nowrap">Daftar Tahun Ajaran</div>
+                        
+                        {/* --- TOP HEADER: SEARCH & BUTTONS --- */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
+                            <div className="flex flex-col">
+                                <span className="text-gray-900 font-bold text-lg whitespace-nowrap">Daftar Tahun Ajaran</span>
+                                <span className="text-sm text-gray-500">Total: {totalItems} Periode</span>
                             </div>
 
-                            <div className="flex gap-2 w-full md:w-auto justify-end">
-                                <PrimaryButton onClick={() => openModal()}>
-                                    + Tambah Periode
-                                </PrimaryButton>
+                            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-start sm:items-center">
+                                {/* KOTAK PENCARIAN */}
+                                <form onSubmit={handleSearch} className="flex w-full sm:w-auto">
+                                    <input
+                                        type="text"
+                                        placeholder="Cari nama periode..."
+                                        className="border-gray-300 rounded-l-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm w-full sm:w-56"
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
+                                    />
+                                    <button type="submit" className="bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-300 rounded-r-md px-3 text-gray-600 font-medium transition-colors">
+                                        Cari
+                                    </button>
+                                </form>
+
+                                {/* TOMBOL TAMBAH */}
+                                <div className="flex w-full sm:w-auto justify-end shrink-0 sm:ml-2">
+                                    <PrimaryButton onClick={() => openModal()} className="w-full sm:w-auto justify-center">
+                                        + Tambah Periode
+                                    </PrimaryButton>
+                                </div>
                             </div>
                         </div>
 
+                        {/* --- TABEL DATA --- */}
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
@@ -256,17 +306,12 @@ export default function PeriodeIndex() {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {loading ? (
-                                        <tr>
-                                            <td colSpan={5} className="p-8 text-center text-gray-500">Sedang memuat data...</td>
-                                        </tr>
+                                        <tr><td colSpan={5} className="p-8 text-center text-gray-500">Sedang memuat data...</td></tr>
                                     ) : periodes.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="p-8 text-center text-gray-500">Belum ada periode.</td>
-                                        </tr>
+                                        <tr><td colSpan={5} className="p-8 text-center text-gray-500">Belum ada periode.</td></tr>
                                     ) : (
                                         periodes.map((item) => (
-                                            <tr key={item.id}
-                                                className={`transition-colors ${item.is_active ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
+                                            <tr key={item.id} className={`transition-colors ${item.is_active ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`text-sm font-bold ${item.is_active ? 'text-green-900' : 'text-gray-900'}`}>
                                                         {item.nama_periode}
@@ -303,12 +348,9 @@ export default function PeriodeIndex() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end gap-3">
-                                                        <button onClick={() => openModal(item)}
-                                                            className="text-indigo-600 hover:text-indigo-900 font-bold">Edit
-                                                        </button>
+                                                        <button onClick={() => openModal(item)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
                                                         {!item.is_active && (
-                                                            <button onClick={() => handleDelete(item.id)}
-                                                                className="text-red-600 hover:text-red-900">Hapus</button>
+                                                            <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900">Hapus</button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -318,6 +360,60 @@ export default function PeriodeIndex() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* --- PAGINATION CONTROLS --- */}
+                        {!loading && totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-md">
+                                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-700">
+                                            Menampilkan halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                disabled={currentPage === 1}
+                                                className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <span className="sr-only">Previous</span>
+                                                &larr; Prev
+                                            </button>
+
+                                            {getPageNumbers().map((page, index) => (
+                                                page === '...' ? (
+                                                    <span key={`ellipsis-${index}`} className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">
+                                                        ...
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => setCurrentPage(page as number)}
+                                                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 transition-colors
+                                                            ${currentPage === page 
+                                                                ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600' 
+                                                                : 'text-gray-900 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                )
+                                            ))}
+
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                disabled={currentPage === totalPages}
+                                                className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <span className="sr-only">Next</span>
+                                                Next &rarr;
+                                            </button>
+                                        </nav>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -325,17 +421,14 @@ export default function PeriodeIndex() {
             {/* MODAL FORM (Sticky) */}
             <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="md">
                 <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
-
                     {/* HEADER */}
                     <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
                         <h2 className="text-lg font-bold text-gray-900">
                             {editingId ? 'Edit Periode' : 'Tambah Periode Baru'}
                         </h2>
-                        <button type="button" onClick={() => setShowModal(false)}
-                            className="text-gray-400 hover:text-gray-600">
+                        <button type="button" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>

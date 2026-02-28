@@ -14,6 +14,13 @@ def get_kriteria():
     claims = get_jwt()
     role = claims.get('role')
 
+    # Parameter Pagination & Filter
+    page = request.args.get('page', type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search_query = request.args.get('search', '', type=str)
+    filter_pj = request.args.get('pj', '', type=str)
+    filter_jalur = request.args.get('jalur', '', type=str)
+
     query = Kriteria.query
 
     # LOGIKA FILTER KHUSUS PAKAR
@@ -27,11 +34,45 @@ def get_kriteria():
                     Kriteria.penanggung_jawab == 'all'
                 )
             )
+    else:
+        # Jika Admin, terapkan filter dropdown Penanggung Jawab jika ada
+        if filter_pj:
+            query = query.filter(Kriteria.penanggung_jawab == filter_pj)
 
-    kriterias = query.order_by(Kriteria.kode.asc()).all()
+    # Filter Pencarian (Kode atau Nama)
+    if search_query:
+        query = query.filter(
+            or_(
+                Kriteria.kode.ilike(f'%{search_query}%'),
+                Kriteria.nama.ilike(f'%{search_query}%')
+            )
+        )
+
+    # Filter Jalur Karir
+    if filter_jalur:
+        query = query.filter(
+            or_(
+                Kriteria.target_jalur == 'all',
+                Kriteria.target_jalur.ilike(f'%{filter_jalur}%')
+            )
+        )
+
+    # Eksekusi Paginasi (Cerdas: Jika dikirim param page, maka pagination, jika tidak, return semua)
+    if page:
+        paginated_kriteria = query.order_by(Kriteria.kode.asc()).paginate(page=page, per_page=per_page, error_out=False)
+        items = paginated_kriteria.items
+        meta = {
+            'current_page': paginated_kriteria.page,
+            'total_pages': paginated_kriteria.pages,
+            'total_items': paginated_kriteria.total,
+            'per_page': paginated_kriteria.per_page
+        }
+    else:
+        items = query.order_by(Kriteria.kode.asc()).all()
+        meta = None
 
     data = []
-    for k in kriterias:
+    for k in items:
         # Ambil sub-pertanyaan
         list_pertanyaan = []
         for p in k.list_pertanyaan:
@@ -47,7 +88,7 @@ def get_kriteria():
             'nama': k.nama,
             'list_pertanyaan': list_pertanyaan,
             'tipe_input': k.tipe_input.value if hasattr(k.tipe_input, 'value') else str(k.tipe_input),
-            'opsi_pilihan': k.opsi_pilihan,  # <--- PASTIKAN INI DI-RETURN
+            'opsi_pilihan': k.opsi_pilihan,
             'atribut': k.atribut.value if hasattr(k.atribut, 'value') else str(k.atribut),
             'kategori': k.kategori.value if hasattr(k.kategori, 'value') else str(k.kategori),
             'sumber_nilai': k.sumber_nilai.value if hasattr(k.sumber_nilai, 'value') else str(k.sumber_nilai),
@@ -58,6 +99,8 @@ def get_kriteria():
             'jalur_reverse': k.jalur_reverse
         })
 
+    if meta:
+        return jsonify({'data': data, 'meta': meta})
     return jsonify({'data': data})
 
 

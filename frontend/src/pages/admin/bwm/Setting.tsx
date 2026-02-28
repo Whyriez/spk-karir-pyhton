@@ -216,7 +216,7 @@ export default function AdminBwmSetting() {
                         <div className="space-y-6">
                             
                             {/* STATUS CARD (Tetap sama) */}
-                            <div className={`p-6 rounded-lg border shadow-sm ${statusData.ready ? 'bg-white border-l-4 border-l-green-500' : 'bg-white border-l-4 border-l-rose-500'}`}>
+                            <div className={`p-6 rounded-lg border shadow-sm ${statusData.ready ? 'bg-white border-l-4 border-gray-300 border-l-green-500' : 'bg-white border-l-4 border-gray-300 border-l-rose-500'}`}>
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-start gap-4">
                                         <div className={`p-2 rounded-full ${statusData.ready ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-600'}`}>
@@ -294,7 +294,7 @@ export default function AdminBwmSetting() {
                             {/* TAMPILAN HASIL (LOOPING PER JURUSAN) */}
                             {savedResults.length > 0 && (
                                 <div className="mt-8 space-y-6">
-                                    <h3 className="text-xl leading-6 font-bold text-gray-900 border-b pb-2">Hasil Bobot Per Jurusan</h3>
+                                    <h3 className="text-xl leading-6 font-bold text-gray-900 border-b border-gray-300 pb-2">Hasil Bobot Per Jurusan</h3>
                                     
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {savedResults.map((item, idx) => (

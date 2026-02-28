@@ -9,20 +9,57 @@ periode_bp = Blueprint('periode', __name__)
 @periode_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required()
 def index():
-    periodes = Periode.query.order_by(Periode.id.desc()).all()
-    data = []
-    for p in periodes:
-        count = RiwayatKelas.query.filter_by(periode_id=p.id).count()
-        data.append({
-            'id': p.id,
-            'nama_periode': p.nama_periode,
-            'is_active': p.is_active,
-            'is_promotion_period': p.is_promotion_period, # Pastikan ini dikirim ke frontend
-            'jumlah_siswa': count
+    # Ambil Parameter Query
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search_query = request.args.get('search', '', type=str)
+
+    query = Periode.query
+
+    # Jika ada pencarian
+    if search_query:
+        query = query.filter(Periode.nama_periode.ilike(f'%{search_query}%'))
+
+    # Jika dikirim parameter page, lakukan pagination (Untuk tampilan tabel Admin)
+    if request.args.get('page'):
+        paginated_periodes = query.order_by(Periode.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        
+        data = []
+        for p in paginated_periodes.items:
+            count = RiwayatKelas.query.filter_by(periode_id=p.id).count()
+            data.append({
+                'id': p.id,
+                'nama_periode': p.nama_periode,
+                'is_active': p.is_active,
+                'is_promotion_period': p.is_promotion_period,
+                'jumlah_siswa': count
+            })
+
+        return jsonify({
+            'periodes': data,
+            'auto_setting': False,
+            'meta': {
+                'current_page': paginated_periodes.page,
+                'total_pages': paginated_periodes.pages,
+                'total_items': paginated_periodes.total,
+                'per_page': paginated_periodes.per_page
+            }
         })
-
-    return jsonify({'periodes': data, 'auto_setting': False})
-
+    else:
+        # Fallback (Misal dipanggil dropdown biasa tanpa pagination)
+        periodes = query.order_by(Periode.id.desc()).all()
+        data = []
+        for p in periodes:
+            count = RiwayatKelas.query.filter_by(periode_id=p.id).count()
+            data.append({
+                'id': p.id,
+                'nama_periode': p.nama_periode,
+                'is_active': p.is_active,
+                'is_promotion_period': p.is_promotion_period,
+                'jumlah_siswa': count
+            })
+        return jsonify({'periodes': data, 'auto_setting': False})
+    
 @periode_bp.route('', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def store():

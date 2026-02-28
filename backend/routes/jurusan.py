@@ -6,12 +6,45 @@ jurusan_bp = Blueprint('jurusan', __name__)
 
 
 @jurusan_bp.route('/', methods=['GET'], strict_slashes=False)
-# @jwt_required()
 def index():
-    # Public read (bisa dipakai saat register/form)
-    data = Jurusan.query.order_by(Jurusan.kode_jurusan.asc()).all()
-    res = [{'id': j.id, 'kode': j.kode_jurusan, 'nama': j.nama_jurusan} for j in data]
-    return jsonify({'data': res})
+    # Ambil Parameter Query
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search_query = request.args.get('search', '', type=str)
+
+    # Base Query
+    query = Jurusan.query
+
+    # Jika ada pencarian
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Jurusan.kode_jurusan.ilike(f'%{search_query}%'),
+                Jurusan.nama_jurusan.ilike(f'%{search_query}%')
+            )
+        )
+
+    # Jika ada parameter pagination dari admin, gunakan paginasi.
+    # Jika tidak ada (biasanya dipanggil dari form registrasi public), kita batasi tapi tetap kembalikan list.
+    if request.args.get('page'):
+        paginated_jurusans = query.order_by(Jurusan.kode_jurusan.asc()).paginate(page=page, per_page=per_page, error_out=False)
+        
+        data = [{'id': j.id, 'kode': j.kode_jurusan, 'nama': j.nama_jurusan} for j in paginated_jurusans.items]
+        
+        return jsonify({
+            'data': data,
+            'meta': {
+                'current_page': paginated_jurusans.page,
+                'total_pages': paginated_jurusans.pages,
+                'total_items': paginated_jurusans.total,
+                'per_page': paginated_jurusans.per_page
+            }
+        })
+    else:
+        # Fallback untuk endpoint public tanpa pagination (misal untuk dropdown)
+        data = query.order_by(Jurusan.kode_jurusan.asc()).all()
+        res = [{'id': j.id, 'kode': j.kode_jurusan, 'nama': j.nama_jurusan} for j in data]
+        return jsonify({'data': res})
 
 
 @jurusan_bp.route('/me', methods=['GET'])
