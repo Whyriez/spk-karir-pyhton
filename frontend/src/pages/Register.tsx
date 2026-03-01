@@ -9,7 +9,7 @@ import { useLayout } from '@/contexts/useLayout.ts';
 
 interface Jurusan {
     id: number;
-    nama_jurusan: string;
+    nama: string;
 }
 
 export default function Register() {

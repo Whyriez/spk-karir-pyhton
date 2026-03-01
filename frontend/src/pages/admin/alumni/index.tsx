@@ -5,7 +5,6 @@ import InputLabel from '@/components/InputLabel';
 import TextInput from '@/components/TextInput';
 import PrimaryButton from '@/components/PrimaryButton';
 import SecondaryButton from '@/components/SecondaryButton';
-import DangerButton from '@/components/DangerButton';
 import apiClient from '@/lib/axios';
 import Header from "../../../components/Header.tsx";
 import Swal from 'sweetalert2';

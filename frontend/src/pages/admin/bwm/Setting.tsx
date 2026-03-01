@@ -315,7 +315,7 @@ export default function AdminBwmSetting() {
                                                             </tr>
                                                         </thead>
                                                         <tbody className="bg-white divide-y divide-gray-100">
-                                                            {Object.entries(item.weights || {}).map(([kode, val]: any, i) => (
+                                                            {Object.entries(item.weights || {}).map(([kode, val]: any) => (
                                                                 <tr key={kode} className="hover:bg-gray-50 transition-colors">
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-indigo-600">{kode}</td>
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
