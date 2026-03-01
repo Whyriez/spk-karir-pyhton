@@ -299,7 +299,7 @@ export default function ResultSiswa() {
                     <h2 className="text-xl font-bold mb-4">Daftar Alumni Relevan</h2>
                     <div className="max-h-96 overflow-y-auto space-y-3">
                         {alumni_relevan.map((a: any, i: number) => (
-                            <div key={i} className="flex justify-between p-3 bg-gray-50 rounded border">
+                            <div key={i} className="flex justify-between p-3 bg-gray-50 rounded border border-gray-300">
                                 <div>
                                     <div className="font-bold">{a.name}</div>
                                     <div className="text-xs text-gray-500">Angkatan {a.batch}</div>

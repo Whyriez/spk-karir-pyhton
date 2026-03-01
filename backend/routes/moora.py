@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 # PENTING: Tambahkan import RiwayatKelas
 from models import db, User, Kriteria, NilaiSiswa, NilaiStaticJurusan, BobotKriteria, HasilRekomendasi, Periode, Alumni, \
     RiwayatKelas
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 import math
 import numpy as np
 
@@ -217,15 +217,7 @@ def get_result():
     user = User.query.get(current_user_id)
     if user and user.jurusan and hasil:
         keputusan = (hasil.keputusan_terbaik or '').lower()
-        if 'studi' in keputusan or 'kuliah' in keputusan:
-            status_keyword = 'kuliah'
-        elif 'kerja' in keputusan:
-            status_keyword = 'kerja'
-        elif 'wirausaha' in keputusan or 'usaha' in keputusan:
-            status_keyword = 'wirausaha'
-        else:
-            status_keyword = None
-
+        
         # Normalisasi jurusan (ambil kata kunci utama)
         jurusan_keyword = user.jurusan.nama_jurusan.lower()
 
@@ -236,12 +228,32 @@ def get_result():
                 Alumni.major.ilike(f"%{jurusan_keyword}%")
             )
 
-        if status_keyword:
-            query = query.filter(
-                Alumni.status.ilike(f"%{status_keyword}%")
-            )
+        if 'studi' in keputusan:
+            query = query.filter(or_(
+                Alumni.status.ilike("%studi%"),
+                Alumni.status.ilike("%kuliah%"),
+                Alumni.status.ilike("%universitas%"),
+                Alumni.status.ilike("%politeknik%"),
+                Alumni.status.ilike("%institut%")
+            ))
+        elif 'kerja' in keputusan:
+            query = query.filter(or_(
+                Alumni.status.ilike("%kerja%"),
+                Alumni.status.ilike("%bekerja%"),
+                Alumni.status.ilike("%karyawan%"),
+                Alumni.status.ilike("%pegawai%"),
+                Alumni.status.ilike("%pt%")
+            ))
+        elif 'wirausaha' in keputusan or 'usaha' in keputusan:
+            query = query.filter(or_(
+                Alumni.status.ilike("%wirausaha%"),
+                Alumni.status.ilike("%usaha%"),
+                Alumni.status.ilike("%bisnis%"),
+                Alumni.status.ilike("%owner%")
+            ))
 
-        alumnis = query.order_by(Alumni.batch.desc()).limit(5).all()
+        # Ambil 5 data terbaru berdasarkan angkatan
+        alumnis = query.order_by(Alumni.batch.desc()).all()
         alumni_list = [
             {
                 'name': a.name,
