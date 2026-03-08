@@ -526,8 +526,8 @@ export default function AdminSiswaIndex() {
 
                     <div className="space-y-4">
                         <div>
-                            <InputLabel value="NISN" required />
-                            <TextInput value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} className="w-full" required />
+                            <InputLabel value="NISN"  required />
+                            <TextInput value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} type='number' className="w-full" required />
                         </div>
                         <div>
                             <InputLabel value="Nama" required />

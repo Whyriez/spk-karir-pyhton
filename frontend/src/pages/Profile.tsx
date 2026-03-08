@@ -79,7 +79,7 @@ export default function Profile() {
                             </div>
                             <div>
                                 <InputLabel value="Username / ID Login" />
-                                <TextInput value={user.username || user.nisn || '-'} disabled className="w-full mt-1 bg-gray-50 text-gray-500 cursor-not-allowed" />
+                                <TextInput value={user.username || '-'} disabled className="w-full mt-1 bg-gray-50 text-gray-500 cursor-not-allowed" />
                             </div>
                             <div>
                                 <InputLabel value="Hak Akses (Role)" />

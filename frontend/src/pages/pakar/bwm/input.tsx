@@ -161,7 +161,7 @@ export default function BwmInput() {
             await MySwal.fire({
                 icon: 'error',
                 title: 'Konsistensi Tidak Valid',
-                html: `Nilai CR Anda adalah <b>${crValue.toFixed(4)}</b> (> 0.1).<br/>Sistem mensyaratkan nilai CR harus ≤ 0.1 (Konsisten).<br/>Silakan perbaiki penilaian Anda.`,
+                html: `Tingkat konsistensi Anda adalah <b>${crValue.toFixed(4)}</b> (> 0.1).<br/>Sistem mensyaratkan tingkat konsistensi harus ≤ 0.1 agar hasil valid.<br/>Silakan perbaiki penilaian Anda.`,
                 confirmButtonText: 'Perbaiki Dulu',
                 confirmButtonColor: '#3085d6',
                 showCancelButton: false,
@@ -206,7 +206,7 @@ export default function BwmInput() {
         return (
             <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-                <p className="mt-4 text-gray-500 text-sm">Menyiapkan Kuesioner BWM...</p>
+                <p className="mt-4 text-gray-500 text-sm">Menyiapkan Formulir Pembobotan...</p>
             </div>
         );
     }
@@ -214,7 +214,7 @@ export default function BwmInput() {
     return (
         <>
             <Header>
-                <h2 className="font-semibold text-xl text-gray-800">Input BWM (Sesuai FGD)</h2>
+                <h2 className="font-semibold text-xl text-gray-800">Input Pembobotan (Sesuai FGD)</h2>
             </Header>
             <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -282,7 +282,7 @@ export default function BwmInput() {
                                 </svg>
                             </div>
                             <div>
-                                <span className="font-bold block text-sm opacity-70">Consistency Ratio (Personal)</span>
+                                <span className="font-bold block text-sm opacity-70">Tingkat Konsistensi Penilaian</span>
                                 <span className="text-2xl font-mono font-bold tracking-tight">
                                     {crValue !== null ? crValue.toFixed(4) : '-'}
                                 </span>
@@ -290,7 +290,7 @@ export default function BwmInput() {
                         </div>
 
                         <div className="text-right mt-2 md:mt-0">
-                            {crValue === null && <span className="text-sm text-gray-500 italic">Isi perbandingan untuk melihat CR...</span>}
+                            {crValue === null && <span className="text-sm text-gray-500 italic">Isi perbandingan untuk melihat tingkat konsistensi...</span>}
                             {crValue !== null && crValue > 0.1 && (
                                 <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white border border-amber-200 text-amber-800 shadow-sm animate-pulse">
                                     ⚠️ Tidak Konsisten (Target &le; 0.1)
@@ -423,7 +423,7 @@ export default function BwmInput() {
 
                         </div>
 
-                        <div className="flex justify-end pt-6 border-t border-gray-100 pb-12">
+                        <div className="flex justify-end border-t border-gray-100 pb-12">
                             <button
                                 type="submit"
                                 disabled={processing}

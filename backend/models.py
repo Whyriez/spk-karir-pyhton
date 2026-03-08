@@ -67,9 +67,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=True)
     username = db.Column(db.String(255), unique=True, nullable=False)
-    email_verified_at = db.Column(db.DateTime, nullable=True)
     password = db.Column(db.String(255), nullable=False)
 
     # Enum types
@@ -79,9 +77,6 @@ class User(db.Model):
     jenis_pakar = db.Column(db.String(255), nullable=True)  # Untuk role pakar
     jurusan_id = db.Column(db.Integer, db.ForeignKey('jurusan.id', ondelete='SET NULL'), nullable=True)
     # ----------------------------
-
-    nisn = db.Column(db.String(255), unique=True, nullable=True)
-    remember_token = db.Column(db.String(100), nullable=True)
 
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
@@ -159,7 +154,6 @@ class Pertanyaan(db.Model):
 
     teks = db.Column(db.Text, nullable=False)
     urutan = db.Column(db.Integer, default=0)
-    is_active = db.Column(db.Boolean, default=True)
 
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
@@ -227,7 +221,6 @@ class HasilRekomendasi(db.Model):
 
     detail_snapshot = db.Column(JSON, nullable=True)
 
-    tanggal_hitung = db.Column(db.DateTime(timezone=True), server_default=func.now())
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 

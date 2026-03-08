@@ -31,7 +31,7 @@ def get_stats():
         }
 
         # 3. Rekapitulasi Terbaru (5 Data Terakhir)
-        recent_results = HasilRekomendasi.query.order_by(HasilRekomendasi.tanggal_hitung.desc()).limit(5).all()
+        recent_results = HasilRekomendasi.query.order_by(HasilRekomendasi.created_at.desc()).limit(5).all()
         rekapitulasi = []
         for res in recent_results:
             nilai_optima = max(res.skor_studi or 0, res.skor_kerja or 0, res.skor_wirausaha or 0)
@@ -42,7 +42,7 @@ def get_stats():
                 'jurusan': jurusan_nama,
                 'nilai_optima': nilai_optima,
                 'keputusan': res.keputusan_terbaik,
-                'tanggal': res.tanggal_hitung
+                'tanggal': res.created_at
             })
 
         # ==========================================

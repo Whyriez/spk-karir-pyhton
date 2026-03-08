@@ -105,14 +105,14 @@ export default function Login() {
 
                 <form onSubmit={submit}>
                     <div>
-                        <InputLabel value="Email atau Username/NISN" />
+                        <InputLabel value="NISN/NIP" />
                         <TextInput
                             id="login_id"
-                            type="text"
+                            type="number"
                             name="login_id"
                             value={data.login_id}
                             className="mt-1 block w-full"
-                            autoComplete="username"
+                            autoComplete="NISN/NIP"
                             autoFocus
                             onChange={(e) => setData({ ...data, login_id: e.target.value })}
                         />

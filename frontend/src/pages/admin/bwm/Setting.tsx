@@ -107,7 +107,7 @@ export default function AdminBwmSetting() {
 
     return (
         <div>
-            <Header>Setting & Kalkulasi BWM</Header>
+            <Header>Pengaturan & Kalkulasi Pembobotan</Header>
             <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     
@@ -276,9 +276,9 @@ export default function AdminBwmSetting() {
                             {/* ACTION BUTTON */}
                             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-6 shadow-sm sm:rounded-lg border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div>
-                                    <h4 className="font-bold text-indigo-900">Eksekusi Solver BWM (Per Jurusan)</h4>
+                                    <h4 className="font-bold text-indigo-900">Kalkulasi Bobot Akhir (Per Jurusan)</h4>
                                     <p className="text-sm text-indigo-700 mt-1">
-                                        Sistem akan menyatukan vektor bobot global (Guru BK) dengan bobot teknis (Kaprodi) untuk masing-masing jurusan.
+                                        Sistem akan menyatukan penilaian global (Guru BK) dengan penilaian teknis (Kaprodi) untuk menentukan hasil akhir setiap jurusan.
                                     </p>
                                 </div>
                                 <button

@@ -143,7 +143,7 @@ export default function Register() {
 
                     <div className="mt-4">
                         <div>
-                            <InputLabel value="NISN" />
+                            <InputLabel value="NISN/Username (Bisa Pilih Salah Satu)" />
                             <TextInput
                                 id="nisn"
                                 type="text"

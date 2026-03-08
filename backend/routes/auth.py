@@ -16,18 +16,19 @@ def login():
     if not login_id or not password:
         return jsonify({"msg": "Login ID dan Password wajib diisi"}), 400
 
-    user = User.query.filter(
-        or_(
-            User.email == login_id,
-            User.username == login_id,
-            User.nisn == login_id
-        )
-    ).first()
+    user = User.query.filter_by(username=login_id).first()
 
     if not user or not check_password_hash(user.password, password):
         return jsonify({"msg": "Kredensial tidak valid (User tidak ditemukan atau password salah)"}), 401
 
     role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+
+    jurusan_info = None
+    if user.jurusan:
+        jurusan_info = {
+            "id": user.jurusan.id,
+            "nama_jurusan": user.jurusan.nama_jurusan
+        }
 
     # Buat Access Token & Refresh Token
     access_token = create_access_token(
@@ -48,9 +49,9 @@ def login():
             "name": user.name,
             "username": user.username,
             "role": role_str,
-            "email": user.email,
             "jenis_pakar": user.jenis_pakar,
-            "jurusan_id": user.jurusan_id
+            "jurusan_id": user.jurusan_id,
+            "jurusan": jurusan_info
         }
     }), 200
 
@@ -75,12 +76,8 @@ def register():
         return jsonify({"msg": "Semua field (termasuk Jurusan dan Kelas) wajib diisi"}), 400
 
     # Cek apakah username atau nisn sudah pernah dipakai
-    existing_user = User.query.filter(
-        or_(
-            User.username == nisn, 
-            (User.nisn == nisn) & (User.nisn != None) & (User.nisn != "")
-        )
-    ).first()
+    # UBAH MENJADI:
+    existing_user = User.query.filter(User.username == nisn).first()
 
     if existing_user:
         return jsonify({"msg": "NISN sudah terdaftar!, Silahkan login dengan NISN tersebut"}), 400
@@ -92,7 +89,6 @@ def register():
     new_user = User(
         name=name,
         username=nisn,
-        nisn=nisn,
         password=hashed_password,
         role=RoleEnum.siswa,
         jurusan_id=jurusan_id
@@ -142,7 +138,7 @@ def register():
             "name": new_user.name,
             "username": new_user.username,
             "role": role_str,
-            "nisn": new_user.nisn,
+            "nisn": new_user.username,
             "jurusan_id": new_user.jurusan_id
         }
     }), 201

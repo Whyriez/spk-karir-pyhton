@@ -76,11 +76,10 @@ def get_kriteria():
         # Ambil sub-pertanyaan
         list_pertanyaan = []
         for p in k.list_pertanyaan:
-            if p.is_active:
-                list_pertanyaan.append({
-                    'id': p.id,
-                    'teks': p.teks
-                })
+            list_pertanyaan.append({
+                'id': p.id,
+                'teks': p.teks
+            })
 
         data.append({
             'id': k.id,
@@ -138,9 +137,9 @@ def store():
         )
 
         pertanyaan_list = data.get('list_pertanyaan', [])
-        for teks in pertanyaan_list:
+        for index, teks in enumerate(pertanyaan_list):
             if teks:
-                p = Pertanyaan(teks=teks, kriteria=kriteria)
+                p = Pertanyaan(teks=teks, kriteria=kriteria, urutan=index + 1)
                 db.session.add(p)
 
         db.session.add(kriteria)
@@ -193,9 +192,9 @@ def update(id):
         if 'list_pertanyaan' in data:
             Pertanyaan.query.filter_by(kriteria_id=kriteria.id).delete()
             new_questions = data['list_pertanyaan']
-            for teks in new_questions:
+            for index, teks in enumerate(new_questions):
                 if teks and teks.strip():
-                    p = Pertanyaan(teks=teks, kriteria_id=kriteria.id)
+                    p = Pertanyaan(teks=teks, kriteria_id=kriteria.id, urutan=index + 1)
                     db.session.add(p)
 
         db.session.commit()

@@ -199,7 +199,7 @@ export default function JurusanPakarIndex() {
         <div>
             <Header>
                 <div className="flex justify-between items-center">
-                    <h2 className="font-semibold text-xl text-gray-800">Data Jurusan & Nilai Static</h2>
+                    <h2 className="font-semibold text-xl text-gray-800">Kelola Standar Nilai Jurusan</h2>
                 </div>
             </Header>
 

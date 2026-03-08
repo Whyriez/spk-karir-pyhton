@@ -282,7 +282,7 @@ export default function ResultSiswa() {
                     </div>
                 </div>
 
-                <div className="flex justify-center pt-8 pb-4">
+                {/* <div className="flex justify-center pt-8 pb-4">
                     <Link
                         to="https://forms.gle/pFPoAioPigykLbrw5"
                         target='_BLANK'
@@ -290,7 +290,7 @@ export default function ResultSiswa() {
                     >
                         Isi Formulir Kuesioner
                     </Link>
-                </div>
+                </div> */}
             </div>
 
             {/* MODAL ALUMNI */}

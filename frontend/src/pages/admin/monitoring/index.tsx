@@ -18,8 +18,8 @@ interface MonitoringItem {
         jurusan?: { nama_jurusan: string };
     };
     jurusan?: { nama_jurusan: string };
-    kelas?: string; 
-    tingkat_kelas?: string; 
+    kelas?: string;
+    tingkat_kelas?: string;
     keputusan_terbaik?: string;
     skor_studi?: number;
     skor_kerja?: number;
@@ -67,6 +67,16 @@ export default function MonitoringIndex() {
     const [catatanInput, setCatatanInput] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    // State Modal Export Custom
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportTarget, setExportTarget] = useState<'admin' | 'pakar'>('pakar');
+    const [exportConfig, setExportConfig] = useState({
+        limit10: '',
+        limit11: '',
+        limit12: '',
+        balanced: true
+    });
+
     // Ambil Data Jurusan Sekali Saat Mount
     useEffect(() => {
         apiClient.get('/jurusan').then(res => {
@@ -76,23 +86,36 @@ export default function MonitoringIndex() {
         }).catch(err => console.error(err));
     }, []);
 
-    const handlePrintUAT = async (target: 'admin' | 'pakar') => {
+    const openExportModal = (target: 'admin' | 'pakar') => {
+        setExportTarget(target);
+        setIsExportModalOpen(true);
+    };
+
+    const handlePrintUAT = async () => {
         try {
             const response = await apiClient.get('/monitoring/export-uat', {
-                params: { 
+                params: {
                     periode_id: selectedPeriode,
                     kelas: selectedKelas,
-                    jurusan_id: selectedJurusan
+                    jurusan_id: selectedJurusan, 
+                    limit_10: exportConfig.limit10 || 0,
+                    limit_11: exportConfig.limit11 || 0,
+                    limit_12: exportConfig.limit12 || 0,
+                    balanced: exportConfig.balanced
                 }
             });
-            const data = response.data.data;
+            
+            let data = response.data.data;
+
+            // --- PENGECUALIAN DATA ALIM SUMA ---
+            data = data.filter((item: any) => item.name?.toLowerCase() !== 'alim suma');
 
             if (data.length === 0) {
-                alert("Tidak ada data siswa untuk kriteria filter ini.");
+                alert("Tidak ada data siswa untuk kriteria filter ini (atau semua data merupakan akun dummy).");
                 return;
             }
 
-            const isPakar = target === 'pakar';
+            const isPakar = exportTarget === 'pakar';
             const title = isPakar ? 'LEMBAR VALIDASI PAKAR (BLIND TEST)' : 'LEMBAR REKAPITULASI UAT (SISTEM VS PAKAR)';
             const desc = isPakar
                 ? 'Mohon berikan rekomendasi karir (Melanjutkan Studi / Bekerja / Berwirausaha) berdasarkan profil indikator masing-masing siswa.'
@@ -123,6 +146,7 @@ export default function MonitoringIndex() {
                         tbody tr:nth-child(even) { background-color: #f9fafb; }
                         .siswa-name { font-size: 13px; font-weight: 700; color: #111827; }
                         .siswa-nisn { font-size: 11px; color: #6b7280; margin-top: 4px; }
+                        .siswa-kelas { font-size: 11px; font-weight: 600; color: #4f46e5; margin-top: 4px; background: #e0e7ff; padding: 2px 6px; border-radius: 4px; display: inline-block; }
                         .jawaban-list { list-style: none; margin: 0; padding: 0; }
                         .jawaban-list li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
                         .jawaban-list li:last-child { border-bottom: none; padding-bottom: 0; }
@@ -143,8 +167,8 @@ export default function MonitoringIndex() {
                         <thead>
                             <tr>
                                 <th style="width: 3%; text-align: center;">No</th>
-                                <th style="width: 17%;">Identitas Siswa</th>
-                                <th style="width: ${isPakar ? '50%' : '40%'};">Profil Jawaban / Kriteria Analisis</th>
+                                <th style="width: 20%;">Identitas Siswa</th>
+                                <th style="width: ${isPakar ? '47%' : '37%'};">Profil Jawaban / Kriteria Analisis</th>
                                 ${!isPakar ? `<th style="width: 15%;">Rekomendasi Sistem</th>` : ''}
                                 <th style="width: ${isPakar ? '20%' : '15%'};">Rekomendasi Pakar</th>
                                 <th style="width: 10%; text-align: center;">Sesuai?</th>
@@ -166,6 +190,7 @@ export default function MonitoringIndex() {
                                     <td>
                                         <div class="siswa-name">${item.name}</div>
                                         <div class="siswa-nisn">NISN: ${item.nisn || '-'}</div>
+                                        <div class="siswa-kelas">Kelas ${item.kelas || item.tingkat_kelas || '-'}</div>
                                     </td>
                                     <td>
                                         <ul class="jawaban-list">
@@ -199,8 +224,9 @@ export default function MonitoringIndex() {
                 setTimeout(() => {
                     printWindow.print();
                     printWindow.close();
-                }, 700); 
+                }, 700);
             }
+            setIsExportModalOpen(false);
         } catch (error) {
             console.error("Gagal export UAT", error);
             alert("Terjadi kesalahan saat mengambil data untuk dicetak.");
@@ -285,7 +311,7 @@ export default function MonitoringIndex() {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 p-6">
 
-                        {/* --- FILTER SECTION (Diperbarui dgn Layout Grid) --- */}
+                        {/* --- FILTER SECTION --- */}
                         <div className="mb-6 pb-6 border-b border-gray-100">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
                                 <div className="lg:col-span-1">
@@ -346,24 +372,24 @@ export default function MonitoringIndex() {
                                     </select>
                                 </div>
                             </div>
-                            
+
                             {/* Tombol PDF di Baris Bawah */}
-                            {selectedStatus === 'sudah' && (
-                                <div className="mt-4 flex justify-end gap-2">
+                            {/* {selectedStatus === 'sudah' && (
+                                <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
-                                        onClick={() => handlePrintUAT('pakar')}
+                                        onClick={() => openExportModal('pakar')}
                                         className="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-indigo-100 transition ease-in-out duration-150"
                                     >
                                         📄 Unduh PDF Validasi Pakar
                                     </button>
                                     <button
-                                        onClick={() => handlePrintUAT('admin')}
+                                        onClick={() => openExportModal('admin')}
                                         className="inline-flex items-center px-4 py-2 bg-gray-50 text-gray-700 border border-gray-300 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-100 transition ease-in-out duration-150"
                                     >
                                         📊 Unduh PDF Rekapitulasi Admin
                                     </button>
                                 </div>
-                            )}
+                            )} */}
                         </div>
 
                         {/* --- TABLE SECTION --- */}
@@ -417,7 +443,7 @@ export default function MonitoringIndex() {
                                                         <div className="text-sm text-gray-500">{siswaNisn}</div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded mr-2">Kelas {kelas}</span> 
+                                                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded mr-2">Kelas {kelas}</span>
                                                         {jurusanName}
                                                     </td>
 
@@ -481,7 +507,7 @@ export default function MonitoringIndex() {
                                                 className={`px-3 py-1 text-sm rounded font-medium border ${link.active
                                                     ? 'bg-indigo-600 text-white border-indigo-600'
                                                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                                } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
+                                                    } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
                                         );
@@ -511,14 +537,82 @@ export default function MonitoringIndex() {
                         ></textarea>
 
                         <div className="mt-6 flex justify-end gap-3">
-                            <SecondaryButton onClick={() => setIsModalOpen(false)}>
+                            <SecondaryButton type="button" onClick={() => setIsModalOpen(false)}>
                                 Batal
                             </SecondaryButton>
-                            <PrimaryButton disabled={processing}>
+                            <PrimaryButton type="submit" disabled={processing}>
                                 {processing ? 'Menyimpan...' : 'Simpan Catatan'}
                             </PrimaryButton>
                         </div>
                     </form>
+                </div>
+            </Modal>
+
+
+            {/* --- MODAL EXPORT UAT CUSTOM --- */}
+            <Modal show={isExportModalOpen} onClose={() => setIsExportModalOpen(false)}>
+                <div className="p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 pb-3 border-b border-gray-100">
+                        Pengaturan Unduh PDF ({exportTarget === 'pakar' ? 'Validasi Pakar' : 'Rekapitulasi Admin'})
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-5">
+                        Anda dapat membatasi jumlah data yang diunduh. Biarkan kosong jika ingin mengunduh <b>semua data</b> sesuai filter di atas.
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-4 mb-5">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Total Kelas 10</label>
+                            <input type="number" min="0"
+                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                placeholder="Cth: 15"
+                                value={exportConfig.limit10}
+                                onChange={e => setExportConfig({ ...exportConfig, limit10: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Total Kelas 11</label>
+                            <input type="number" min="0"
+                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                placeholder="Cth: 15"
+                                value={exportConfig.limit11}
+                                onChange={e => setExportConfig({ ...exportConfig, limit11: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Total Kelas 12</label>
+                            <input type="number" min="0"
+                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                placeholder="Cth: 15"
+                                value={exportConfig.limit12}
+                                onChange={e => setExportConfig({ ...exportConfig, limit12: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mb-6 flex items-start p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                        <div className="flex items-center h-5">
+                            <input type="checkbox" id="balanced"
+                                className="w-4 h-4 text-indigo-600 bg-white border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                checked={exportConfig.balanced}
+                                onChange={e => setExportConfig({ ...exportConfig, balanced: e.target.checked })}
+                            />
+                        </div>
+                        <div className="ml-3 text-sm">
+                            <label htmlFor="balanced" className="font-semibold text-indigo-900 cursor-pointer">
+                                Variasikan Hasil Keputusan (Direkomendasikan)
+                            </label>
+                            <p className="text-indigo-700 mt-1">Sistem akan berusaha membagi rata siswa dengan hasil rekomendasi Melanjutkan Studi, Bekerja, dan Berwirausaha. Jika salah satu hasil kurang, akan otomatis diisi oleh sisa hasil lainnya.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <SecondaryButton onClick={() => setIsExportModalOpen(false)}>
+                            Batal
+                        </SecondaryButton>
+                        <PrimaryButton onClick={handlePrintUAT}>
+                            Generate PDF
+                        </PrimaryButton>
+                    </div>
                 </div>
             </Modal>
         </div>

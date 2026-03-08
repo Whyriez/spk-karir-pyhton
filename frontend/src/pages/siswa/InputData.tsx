@@ -476,7 +476,7 @@ export default function InputDataSiswa() {
                         {listKuesioner.length > 0 && (
                             <div className="bg-white p-6 shadow-sm rounded-lg border-l-4 border-green-500">
                                 <h3 className="text-lg font-bold mb-4 text-gray-800 border-b border-gray-100 pb-2">
-                                    2. Kuesioner Minat
+                                    2. Isi Kuesioner Minat
                                 </h3>
                                 <div className="space-y-8">
                                     {listKuesioner.map(k => (

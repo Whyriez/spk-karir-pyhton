@@ -326,12 +326,13 @@ export default function PakarIndex() {
                     <div className="flex-1 overflow-y-auto p-6">
                         <div className="space-y-4">
                             <div>
-                                <InputLabel value="Login ID / NIP" required />
+                                <InputLabel value="NIP" required />
                                 <TextInput
                                     value={form.username}
                                     onChange={e => setForm({ ...form, username: e.target.value })}
+                                    type='number'
                                     className={`w-full mt-1 ${errors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                                    placeholder="NIP atau Username"
+                                    placeholder="NIP"
                                 />
                                 {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
                             </div>

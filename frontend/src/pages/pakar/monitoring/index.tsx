@@ -366,7 +366,7 @@ export default function MonitoringPakar() {
                             </div>
                             
                             {/* Tombol PDF di Baris Bawah */}
-                            {selectedStatus === 'sudah' && (
+                            {/* {selectedStatus === 'sudah' && (
                                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
                                         onClick={() => handlePrintUAT('pakar')}
@@ -374,8 +374,7 @@ export default function MonitoringPakar() {
                                     >
                                         📄 Unduh PDF Validasi Pakar
                                     </button>
-                                    
-                                    {/* Opsional: Sembunyikan PDF Admin jika yang login bukan Admin/GuruBK jika dirasa kurang relevan untuk Kaprodi, tapi dibiarkan muncul juga tidak apa-apa karena datanya sudah terfilter per-jurusan */}
+                                
                                     <button
                                         onClick={() => handlePrintUAT('admin')}
                                         className="inline-flex items-center px-4 py-2 bg-gray-50 text-gray-700 border border-gray-300 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-100 transition ease-in-out duration-150"
@@ -383,7 +382,7 @@ export default function MonitoringPakar() {
                                         📊 Unduh PDF Rekapitulasi Admin
                                     </button>
                                 </div>
-                            )}
+                            )} */}
                         </div>
 
                         {/* --- TABLE SECTION --- */}

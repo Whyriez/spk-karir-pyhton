@@ -1,4 +1,5 @@
 import json
+import random
 from flask import Blueprint, request, jsonify, url_for
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from sqlalchemy import or_, and_, desc, asc
@@ -149,7 +150,7 @@ def index():
                 'id': item.id,
                 'user': {
                     'name': item.siswa.name,
-                    'nisn': item.siswa.nisn,
+                    'nisn': item.siswa.username,
                     'jurusan': {
                         'nama_jurusan': item.siswa.jurusan.nama_jurusan if item.siswa.jurusan else '-'
                     }
@@ -289,7 +290,112 @@ def export_uat():
     if is_kaprodi and kaprodi_jurusan_id:
         query = query.filter(User.jurusan_id == kaprodi_jurusan_id)
 
-    results = query.order_by(User.name.asc()).all()
+    # ==================================================
+    # TAMBAHKAN BARIS INI UNTUK MENGECUALIKAN ALIM SUMA
+    # ==================================================
+    query = query.filter(User.nisn != '0046433343')
+
+    # Ambil semua data awal
+    raw_results = query.order_by(User.name.asc()).all()
+
+    # ==================================================
+    # --- PENCEGAH DUPLIKAT & FILTER NILAI DUMMY (100) ---
+    # Memastikan 1 User ID / NISN hanya diexport 1 kali
+    # dan membuang siswa yang iseng mengisi nilai rapor 100
+    # ==================================================
+    results = []
+    seen_siswa_ids = set()
+    for item in raw_results:
+        if item.siswa_id not in seen_siswa_ids:
+            
+            # 1. Cek apakah ada nilai input = 100
+            has_score_100 = False
+            nilai_siswa_list = NilaiSiswa.query.filter_by(siswa_id=item.siswa_id).all()
+            for ns in nilai_siswa_list:
+                if ns.nilai_input:
+                    try:
+                        # Jika ada satu saja kriteria (seperti rapor) yang isinya 100
+                        if float(ns.nilai_input) >= 100:
+                            has_score_100 = True
+                            break
+                    except (ValueError, TypeError):
+                        pass # Abaikan jika input berupa text murni
+            
+            # 2. Jika dia punya nilai 100, lewati (jangan dimasukkan ke list)
+            if has_score_100:
+                continue
+
+            # 3. Jika aman, masukkan ke list final
+            results.append(item)
+            seen_siswa_ids.add(item.siswa_id)
+    # ==================================================
+
+    # ==========================================
+    # --- LOGIKA CUSTOM LIMIT & BALANCING ---
+    # ==========================================
+    limit_10 = request.args.get('limit_10', type=int, default=0)
+    limit_11 = request.args.get('limit_11', type=int, default=0)
+    limit_12 = request.args.get('limit_12', type=int, default=0)
+    is_balanced = request.args.get('balanced', 'false').lower() == 'true'
+
+    total_limit = limit_10 + limit_11 + limit_12
+
+    # Jika user memasukkan limit, kita lakukan pemrosesan
+    if total_limit > 0:
+        data_by_class = {'10': [], '11': [], '12': []}
+        for item in results:
+            kls = str(item.tingkat_kelas)
+            if kls in data_by_class:
+                data_by_class[kls].append(item)
+        
+        limits = {'10': limit_10, '11': limit_11, '12': limit_12}
+        selected_items = []
+
+        for kls, limit in limits.items():
+            if limit <= 0:
+                continue
+            
+            items_in_class = data_by_class[kls]
+            random.shuffle(items_in_class) # Acak urutan agar data bervariasi setiap kali export
+            
+            if not is_balanced:
+                selected_items.extend(items_in_class[:limit])
+            else:
+                # Group by keputusan untuk balancing (Studi / Kerja / Wirausaha)
+                grouped = {'Melanjutkan Studi': [], 'Bekerja': [], 'Berwirausaha': []}
+                for it in items_in_class:
+                    dec = str(it.keputusan_terbaik).lower()
+                    if 'studi' in dec: grouped['Melanjutkan Studi'].append(it)
+                    elif 'kerja' in dec: grouped['Bekerja'].append(it)
+                    elif 'wirausaha' in dec: grouped['Berwirausaha'].append(it)
+                    else:
+                        cat = random.choice(list(grouped.keys()))
+                        grouped[cat].append(it)
+                        
+                chosen = []
+                categories = ['Melanjutkan Studi', 'Bekerja', 'Berwirausaha']
+                available_cats = [c for c in categories if len(grouped[c]) > 0]
+                pointers = {c: 0 for c in categories}
+                
+                # Algoritma Round-Robin: Ambil bergantian 1 per 1 dari tiap kategori.
+                # Jika salah satu kategori habis, kuota otomatis dilarikan ke kategori yang masih ada.
+                while len(chosen) < limit and available_cats:
+                    for c in list(available_cats):
+                        if len(chosen) >= limit:
+                            break
+                        
+                        if pointers[c] < len(grouped[c]):
+                            chosen.append(grouped[c][pointers[c]])
+                            pointers[c] += 1
+                        else:
+                            available_cats.remove(c)
+                
+                selected_items.extend(chosen)
+        
+        # Timpa hasil pencarian dengan data yang sudah di-filter dan di-balance
+        results = selected_items
+    # ==========================================
+
     semua_kriteria = Kriteria.query.order_by(Kriteria.id.asc()).all()
 
     data_items = []
@@ -368,6 +474,7 @@ def export_uat():
         data_items.append({
             'name': item.siswa.name,
             'nisn': item.siswa.nisn,
+            'kelas': item.tingkat_kelas,
             'keputusan_terbaik': item.keputusan_terbaik,
             'detail_jawaban': detail_jawaban
         })

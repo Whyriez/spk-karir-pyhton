@@ -233,7 +233,7 @@ export default function AuthenticatedLayout() {
                         ]
                     },
                     {
-                        label: "Manajemen User", // Boleh digabung atau dipisah
+                        label: "Kelola Pengguna", // Boleh digabung atau dipisah
                         type: "dropdown",
                         items: [
                             { label: "Data Siswa", to: "/admin/siswa" },
@@ -249,7 +249,7 @@ export default function AuthenticatedLayout() {
                             { label: "Data Jurusan", to: "/admin/jurusan" },
                             { label: "Data Kriteria", to: "/admin/kriteria" },
                             { label: "Periode Aktif", to: "/admin/periode" },
-                            { label: "Pengaturan BWM", to: "/admin/bwm/setting" },
+                            { label: "Pengaturan Pembobotan", to: "/admin/bwm/setting" },
                         ]
                     },
                     { label: "Pengaturan", to: "/admin/settings", type: "link" },
@@ -258,13 +258,13 @@ export default function AuthenticatedLayout() {
                 const pakarMenus: Menu[] = [
                     { label: "Dashboard", to: "/dashboard", type: "link" },
                     { label: "Monitoring Siswa", to: "/pakar/monitoring", type: "link" },
-                    { label: "Manajemen Pertanyaan", to: "/pakar/kriteria", type: "link" },
-                    { label: "Input Bobot (BWM)", to: "/pakar/bwm", type: "link" },
+                    { label: "Kelola Pertanyaan", to: "/pakar/kriteria", type: "link" },
+                    { label: "Input Pembobotan", to: "/pakar/bwm", type: "link" },
                 ];
 
                 if (user.jenis_pakar === 'kaprodi') {
                     pakarMenus.push({
-                        label: "Data Jurusan",
+                        label: "Standar Nilai Jurusan",
                         to: "/pakar/jurusan",
                         type: "link"
                     });

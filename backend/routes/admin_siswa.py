@@ -124,7 +124,6 @@ def store_siswa():
             password=hashed_password,
             name=data['name'],
             role=RoleEnum.siswa,
-            # HAPUS: kelas_saat_ini=str(data['kelas']), <-- Field ini sudah dihapus
             jurusan_id=int(data['jurusan_id'])
         )
         db.session.add(new_siswa)
@@ -392,7 +391,6 @@ def import_siswa():
                 username=nisn,
                 password=hashed_password,
                 name=nama,
-                nisn=nisn,
                 role=RoleEnum.siswa,
                 jurusan_id=jurusan_id
             )
