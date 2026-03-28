@@ -374,7 +374,7 @@ export default function MonitoringIndex() {
                             </div>
 
                             {/* Tombol PDF di Baris Bawah */}
-                            {/* {selectedStatus === 'sudah' && (
+                            {selectedStatus === 'sudah' && (
                                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
                                         onClick={() => openExportModal('pakar')}
@@ -389,7 +389,7 @@ export default function MonitoringIndex() {
                                         📊 Unduh PDF Rekapitulasi Admin
                                     </button>
                                 </div>
-                            )} */}
+                            )}
                         </div>
 
                         {/* --- TABLE SECTION --- */}

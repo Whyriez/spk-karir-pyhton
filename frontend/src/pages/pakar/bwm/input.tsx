@@ -275,19 +275,30 @@ export default function BwmInput() {
                         crValue <= 0.1 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-800' :
                             'bg-amber-50/95 border-amber-200 text-amber-800'
                         }`}>
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-full ${crValue !== null && crValue <= 0.1 ? 'bg-emerald-100' : 'bg-gray-200'}`}>
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <span className="font-bold block text-sm opacity-70">Tingkat Konsistensi Penilaian</span>
-                                <span className="text-2xl font-mono font-bold tracking-tight">
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-full ${crValue !== null && crValue <= 0.1 ? 'bg-emerald-100' : 'bg-gray-200'}`}>
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="group relative inline-flex items-center gap-1 cursor-help">
+                                    <span className="font-bold block text-sm opacity-70 border-b border-dashed border-gray-400">
+                                        Tingkat Konsistensi Penilaian
+                                    </span>
+
+                                    <div className="absolute top-full left-0 mt-2 hidden w-60 rounded-md bg-gray-800 p-2 text-xs font-normal text-white shadow-lg opacity-0 group-hover:block group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                                        Mengukur seberapa logis dan konsisten perbandingan Anda. Sistem mensyaratkan nilai harus ≤ 0.1 agar dianggap valid.
+                                        <div className="absolute left-4 bottom-full border-4 border-transparent border-b-gray-800"></div>
+                                    </div>
+                                </div>
+
+                                <span className="text-2xl font-mono font-bold tracking-tight block mt-1">
                                     {crValue !== null ? crValue.toFixed(4) : '-'}
                                 </span>
                             </div>
                         </div>
+
 
                         <div className="text-right mt-2 md:mt-0">
                             {crValue === null && <span className="text-sm text-gray-500 italic">Isi perbandingan untuk melihat tingkat konsistensi...</span>}

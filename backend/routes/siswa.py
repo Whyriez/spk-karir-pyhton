@@ -53,8 +53,7 @@ def get_form():
 
     # Ambil kriteria yang aktif & tampil di siswa
     kriterias = Kriteria.query.filter_by(
-        sumber_nilai='input_siswa',
-        tampil_di_siswa=True
+        sumber_nilai='input_siswa'
     ).order_by(Kriteria.kode.asc()).all()
 
     data = []
@@ -71,8 +70,7 @@ def get_form():
         list_pertanyaan = []
         if hasattr(k, 'list_pertanyaan'):
             for p in k.list_pertanyaan:
-                if p.is_active:
-                    list_pertanyaan.append({
+                list_pertanyaan.append({
                         'id': p.id,
                         'teks': p.teks
                     })

@@ -126,10 +126,7 @@ class Kriteria(db.Model):
     kategori = db.Column(db.Enum(KategoriEnum), default=KategoriEnum.kuesioner, nullable=False)
     sumber_nilai = db.Column(db.Enum(SumberNilaiEnum), default=SumberNilaiEnum.input_siswa, nullable=False)
 
-    # --- MISSING FIELDS ADDED ---
-    tampil_di_siswa = db.Column(db.Boolean, default=True, nullable=False)
     penanggung_jawab = db.Column(db.String(50), default='gurubk', nullable=True)
-    # ----------------------------
 
     # 1. Target Relevansi: Menentukan kriteria ini masuk ke perhitungan mana
     # Isi: "studi,kerja,wirausaha" atau "all"

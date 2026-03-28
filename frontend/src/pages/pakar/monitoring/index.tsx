@@ -366,7 +366,7 @@ export default function MonitoringPakar() {
                             </div>
                             
                             {/* Tombol PDF di Baris Bawah */}
-                            {/* {selectedStatus === 'sudah' && (
+                            {selectedStatus === 'sudah' && (
                                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
                                         onClick={() => handlePrintUAT('pakar')}
@@ -382,7 +382,7 @@ export default function MonitoringPakar() {
                                         📊 Unduh PDF Rekapitulasi Admin
                                     </button>
                                 </div>
-                            )} */}
+                            )}
                         </div>
 
                         {/* --- TABLE SECTION --- */}

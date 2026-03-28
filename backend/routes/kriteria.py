@@ -92,7 +92,6 @@ def get_kriteria():
             'kategori': k.kategori.value if hasattr(k.kategori, 'value') else str(k.kategori),
             'sumber_nilai': k.sumber_nilai.value if hasattr(k.sumber_nilai, 'value') else str(k.sumber_nilai),
             'penanggung_jawab': k.penanggung_jawab if isinstance(k.penanggung_jawab, str) else k.penanggung_jawab.value,
-            'tampil_di_siswa': k.tampil_di_siswa,
             'target_jalur': k.target_jalur or 'all',
             'skala_maks': k.skala_maks,
             'jalur_reverse': k.jalur_reverse
@@ -179,7 +178,6 @@ def update(id):
             if 'kategori' in data: kriteria.kategori = data['kategori']
             if 'sumber_nilai' in data: kriteria.sumber_nilai = data['sumber_nilai']
             if 'penanggung_jawab' in data: kriteria.penanggung_jawab = data['penanggung_jawab']
-            if 'tampil_di_siswa' in data: kriteria.tampil_di_siswa = bool(data['tampil_di_siswa'])
             if 'target_jalur' in data: kriteria.target_jalur = data['target_jalur']
             if 'skala_maks' in data: kriteria.skala_maks = float(data['skala_maks'])
             if 'jalur_reverse' in data: kriteria.jalur_reverse = data['jalur_reverse'] or None

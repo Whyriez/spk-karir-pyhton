@@ -68,18 +68,25 @@ def calculate_bwm_logic(criteria, best_idx, worst_idx, ab_values, aw_values):
         weights = res.x[:-1]
         xi = res.x[-1]
 
-        # Hitung Consistency Ratio (CR)
+        # --- BAGIAN INI YANG DIUBAH AGAR SAMA DENGAN BWM.PY ---
         ci_table = {1: 0.00, 2: 0.44, 3: 1.00, 4: 1.63, 5: 2.30, 6: 3.00, 7: 3.73, 8: 4.47, 9: 5.23}
-        max_scale = max(np.max(ab_values), np.max(aw_values))
-        ci = ci_table.get(int(max_scale), 5.23)
+        
+        # Mengambil nilai preferensi Best terhadap Worst yang sebenarnya (bukan sekadar max)
+        # best_idx adalah index Best, worst_idx adalah index Worst
+        # ab_values adalah array yang berisi nilai perbandingan Best terhadap semua kriteria
+        a_bw = ab_values[worst_idx] 
+        
+        ci = ci_table.get(int(a_bw), 5.23)
         cr = xi / ci if ci > 0 else 0
+        # -----------------------------------------------------
 
         return {
             'success': True,
-            'weights_dict': {criteria[i]: round(weights[i], 4) for i in range(n)},
+            'weights_dict': {criteria[i]: float(weights[i]) for i in range(n)},
             'weights_list': weights.tolist(),
-            'xi': round(xi, 5),
-            'cr': round(cr, 4)
+            'xi': float(xi),
+            'cr': float(cr),
+            'ci': float(ci),
         }
     else:
         return {'success': False}
@@ -90,23 +97,20 @@ def calculate_moora_logic(alternatives, criteria, matrix, weights, types):
     norm_matrix = np.zeros((rows, cols))
     divisors = []
 
-    # 1. Normalisasi
     for j in range(cols):
         sum_sq = np.sum(matrix[:, j] ** 2)
         divisor = np.sqrt(sum_sq)
-        divisors.append(round(divisor, 4))
+        divisors.append(float(divisor)) # Dihapus pembulatan round()
         if divisor > 0:
             norm_matrix[:, j] = matrix[:, j] / divisor
         else:
             norm_matrix[:, j] = 0
 
-    # 2. Optimasi (Menghitung Yi)
     y_scores = []
     calculation_steps = []
 
     for i in range(rows):
-        benefit_sum = 0
-        cost_sum = 0
+        benefit_sum = 0; cost_sum = 0
         step_detail = {'benefit_parts': [], 'cost_parts': []}
 
         for j in range(cols):
@@ -121,24 +125,54 @@ def calculate_moora_logic(alternatives, criteria, matrix, weights, types):
                 step_detail['cost_parts'].append(part_str)
 
         yi = benefit_sum - cost_sum
-        y_scores.append(round(yi, 4))
+        y_scores.append(float(yi)) # Dihapus pembulatan round()
         calculation_steps.append(step_detail)
 
-    # 3. Perankingan
-    ranked_indices = np.argsort(y_scores)[::-1]  # Descending sort
+    ranked_indices = np.argsort(y_scores)[::-1] 
     final_ranking = []
     for rank, idx in enumerate(ranked_indices, 1):
         final_ranking.append({
-            'rank': rank,
-            'name': alternatives[idx],
-            'score': y_scores[idx],
-            'detail': calculation_steps[idx]
+            'rank': rank, 'name': alternatives[idx], 'score': float(y_scores[idx]), 'detail': calculation_steps[idx]
         })
 
+    return {'divisors': divisors, 'matrix_norm': norm_matrix.tolist(), 'ranking': final_ranking}
+
+def calculate_student_moora(student_name, raw_inputs, criteria_config):
+    """Fungsi yang memetakan data mentah siswa menjadi matriks keputusan Karir"""
+    alternatives = ['studi', 'kerja', 'wirausaha']
+    alt_names = ['Melanjutkan Studi', 'Bekerja', 'Berwirausaha']
+    num_crit = len(criteria_config)
+    
+    matrix = np.zeros((3, num_crit))
+    for j, crit in enumerate(criteria_config):
+        val = float(raw_inputs[j])
+        targets = crit.get('target', 'all').lower()
+        reverses = crit.get('reverse', '').lower()
+        max_scale = float(crit.get('maxScale', 5))
+        
+        # Mapping logika target_jalur dan jalur_reverse persis seperti sistem asli (moora.py)
+        for i, alt in enumerate(alternatives):
+            if 'all' in targets or alt in targets:
+                if alt in reverses:
+                    matrix[i, j] = (max_scale + 1) - val
+                else:
+                    matrix[i, j] = val
+            else:
+                matrix[i, j] = 1 # Nilai netral jika kriteria tidak relevan untuk jalur ini
+                
+    weights = [float(c['weight']) for c in criteria_config]
+    types = [c['type'] for c in criteria_config]
+    crit_names = [c['name'] for c in criteria_config]
+    
+    # Jalankan optimasi MOORA pada matriks yang sudah di-mapping
+    moora_res = calculate_moora_logic(alt_names, crit_names, matrix, weights, types)
+    
     return {
-        'divisors': divisors,
-        'matrix_norm': norm_matrix.tolist(),
-        'ranking': final_ranking
+        'student_name': student_name,
+        'mapped_matrix': matrix.tolist(),
+        'matrix_norm': moora_res['matrix_norm'],
+        'ranking': moora_res['ranking'],
+        'best_decision': moora_res['ranking'][0]['name']
     }
 
 
@@ -156,45 +190,53 @@ def simulate_bwm():
     return jsonify({'msg': 'Perhitungan Gagal'}), 400
 
 
-@simulation_bp.route('/moora', methods=['POST'])
+@simulation_bp.route('/moora-students', methods=['POST'])
 @jwt_required()
-def simulate_moora():
+def simulate_moora_students():
     data = request.get_json()
-    res = calculate_moora_logic(
-        data['alternatives'], data['criteria'],
-        np.array(data['matrix']), np.array(data['weights']), data['types']
-    )
-    return jsonify(res)
+    students = data['students']
+    matrix = data['matrix']
+    criteria_config = data['criteria_config']
+    
+    results = []
+    for idx, s_name in enumerate(students):
+        raw_inputs = matrix[idx]
+        res = calculate_student_moora(s_name, raw_inputs, criteria_config)
+        results.append(res)
+        
+    return jsonify({'results': results})
 
 
-@simulation_bp.route('/integrated', methods=['POST'])
+@simulation_bp.route('/integrated-students', methods=['POST'])
 @jwt_required()
-def simulate_integrated():
-    """
-    ENDPOINT SPESIAL: Menerima input BWM & MOORA sekaligus.
-    Output BWM (Bobot) langsung dilempar ke fungsi MOORA.
-    """
+def simulate_integrated_students():
     data = request.get_json()
-
+    
     # 1. JALANKAN BWM
     bwm_res = calculate_bwm_logic(
-        data['criteria'], data['best_idx'], data['worst_idx'],
+        data['criteria_names'], data['best_idx'], data['worst_idx'],
         np.array(data['ab_values']), np.array(data['aw_values'])
     )
-
+    
     if not bwm_res['success']:
         return jsonify({'msg': 'BWM Infeasible (Cek Konsistensi Input)'}), 400
-
-    # Ambil bobot hasil BWM untuk dipakai MOORA
-    weights_from_bwm = bwm_res['weights_list']
-
-    # 2. JALANKAN MOORA (Pakai bobot dari BWM)
-    moora_res = calculate_moora_logic(
-        data['alternatives'], data['criteria'],
-        np.array(data['matrix']), np.array(weights_from_bwm), data['types']
-    )
-
+        
+    # 2. INJEKSI BOBOT BWM KE CONFIG KRITERIA
+    criteria_config = data['criteria_config']
+    for i, w in enumerate(bwm_res['weights_list']):
+        criteria_config[i]['weight'] = w
+        
+    # 3. JALANKAN MOORA UNTUK MASING-MASING SISWA
+    students = data['students']
+    matrix = data['matrix']
+    moora_results = []
+    
+    for idx, s_name in enumerate(students):
+        raw_inputs = matrix[idx]
+        res = calculate_student_moora(s_name, raw_inputs, criteria_config)
+        moora_results.append(res)
+        
     return jsonify({
         'bwm_result': bwm_res,
-        'moora_result': moora_res
+        'moora_results': moora_results
     })
