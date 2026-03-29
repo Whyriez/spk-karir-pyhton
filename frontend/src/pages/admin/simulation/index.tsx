@@ -130,7 +130,8 @@ function BWMSimulation() {
 // 2. MOORA SIMULATION (STUDENT CAREER MAPPING)
 // ============================================================================
 function MOORASimulation() {
-    const [students] = useState(['Siswa A (Studi)', 'Siswa B (Kerja)', 'Siswa C (Wirausaha)']);
+    // DITAMBAHKAN: Siswa D dan E
+    const [students] = useState(['Siswa A (Studi)', 'Siswa B (Kerja)', 'Siswa C (Wirausaha)', 'Siswa D', 'Siswa E']);
 
     // Konfigurasi 8 Kriteria
     const [criteriaConfig, setCriteriaConfig] = useState([
@@ -144,11 +145,13 @@ function MOORASimulation() {
         { name: 'C8: Modal/Aset', type: 'benefit', target: 'wirausaha', reverse: '', maxScale: 5, weight: 0.03403933434190621 }
     ]);
 
-    // UPDATE: Data kuesioner disesuaikan agar cocok dgn profil tiap jalur
+    // DITAMBAHKAN: Data Siswa D dan E
     const [matrix, setMatrix] = useState([
-        [90, 5, 1, 4, 5, 4, 1, 1], // Siswa A: Kuat Studi (C2 tinggi), Lemah Kerja/Wira
-        [75, 1, 5, 2, 4, 5, 1, 1], // Siswa B: Kuat Kerja (C3, C6 tinggi), Lemah Studi/Wira
-        [80, 1, 1, 5, 4, 1, 5, 5]  // Siswa C: Kuat Wirausaha (C7, C8 tinggi), Lemah Studi/Kerja
+        [90, 5, 1, 4, 5, 4, 1, 1], // Siswa A
+        [75, 1, 5, 2, 4, 5, 1, 1], // Siswa B
+        [80, 1, 1, 5, 4, 1, 5, 5], // Siswa C
+        [82, 4, 4, 3, 4, 3, 1, 2], // Siswa D
+        [76, 1, 2, 3, 3, 2, 5, 2]  // Siswa E
     ]);
 
     const [result, setResult] = useState<any>(null);
@@ -297,7 +300,8 @@ function IntegratedSimulation() {
     const [abVector, setAbVector] = useState([1, 4, 3, 4, 5, 2, 4, 5]);
     const [awVector, setAwVector] = useState([5, 4, 5, 2, 2, 4, 6, 1]);
 
-    const [students] = useState(['Siswa A (Studi)', 'Siswa B (Kerja)', 'Siswa C (Wirausaha)']);
+    // DITAMBAHKAN: Siswa D dan E
+    const [students] = useState(['Siswa A (Studi)', 'Siswa B (Kerja)', 'Siswa C (Wirausaha)', 'Siswa D', 'Siswa E']);
 
     const [criteriaConfig, setCriteriaConfig] = useState([
         { name: 'C1: Akademik', type: 'benefit', target: 'all', reverse: '', maxScale: 100 },
@@ -310,11 +314,13 @@ function IntegratedSimulation() {
         { name: 'C8: Modal/Aset', type: 'benefit', target: 'wirausaha', reverse: '', maxScale: 5 }
     ]);
 
-    // UPDATE: Sama seperti MOORA, sesuaikan nilai dummy Siswa A, B, C
+    // DITAMBAHKAN: Data Siswa D dan E
     const [matrix, setMatrix] = useState([
         [90, 5, 1, 4, 5, 4, 1, 1],
         [75, 1, 5, 2, 4, 5, 1, 1],
-        [80, 1, 1, 5, 4, 1, 5, 5]
+        [80, 1, 1, 5, 4, 1, 5, 5],
+        [82, 4, 4, 3, 4, 3, 1, 2],
+        [76, 1, 2, 3, 3, 2, 5, 2]
     ]);
 
     const [result, setResult] = useState<any>(null);
