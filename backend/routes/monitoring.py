@@ -121,15 +121,17 @@ def index():
 
     if status == 'sudah':
         # --- KASUS 1: SUDAH MENGISI ---
-        query = HasilRekomendasi.query.join(User).join(Jurusan, User.jurusan_id == Jurusan.id)
+        # PERBAIKAN: Gunakan outerjoin untuk Jurusan agar siswa yg belum punya jurusan tidak hilang
+        query = HasilRekomendasi.query.join(User).outerjoin(Jurusan, User.jurusan_id == Jurusan.id)
 
         if current_periode_id:
             query = query.filter(HasilRekomendasi.periode_id == current_periode_id)
 
         if search:
+            # PERBAIKAN: Gunakan User.username karena kolom nisn tidak ada di model User
             query = query.filter(or_(
                 User.name.ilike(f'%{search}%'),
-                User.nisn.ilike(f'%{search}%')
+                User.username.ilike(f'%{search}%')
             ))
 
         # Filter Tambahan (Kelas & Jurusan)
@@ -150,7 +152,7 @@ def index():
                 'id': item.id,
                 'user': {
                     'name': item.siswa.name,
-                    'nisn': item.siswa.username,
+                    'nisn': item.siswa.username, # Diingatkan: NISN disimpan di username
                     'jurusan': {
                         'nama_jurusan': item.siswa.jurusan.nama_jurusan if item.siswa.jurusan else '-'
                     }
@@ -168,19 +170,21 @@ def index():
         subquery = db.session.query(HasilRekomendasi.siswa_id) \
             .filter(HasilRekomendasi.periode_id == current_periode_id)
 
+        # PERBAIKAN: Gunakan outerjoin untuk Jurusan
         query = db.session.query(User, RiwayatKelas.tingkat_kelas) \
             .outerjoin(RiwayatKelas, and_(
             RiwayatKelas.siswa_id == User.id,
             RiwayatKelas.periode_id == current_periode_id
         )) \
-            .join(Jurusan, User.jurusan_id == Jurusan.id) \
+            .outerjoin(Jurusan, User.jurusan_id == Jurusan.id) \
             .filter(User.role == RoleEnum.siswa) \
             .filter(~User.id.in_(subquery))
 
         if search:
+            # PERBAIKAN: Gunakan User.username karena kolom nisn tidak ada di model User
             query = query.filter(or_(
                 User.name.ilike(f'%{search}%'),
-                User.nisn.ilike(f'%{search}%')
+                User.username.ilike(f'%{search}%')
             ))
 
         # Filter Tambahan (Kelas & Jurusan)
@@ -200,7 +204,7 @@ def index():
             data_items.append({
                 'id': user.id,
                 'name': user.name,
-                'nisn': user.nisn,
+                'nisn': user.username, # Diperbaiki agar tidak crash
                 'jurusan': {
                     'nama_jurusan': user.jurusan.nama_jurusan if user.jurusan else '-'
                 },
@@ -281,7 +285,8 @@ def export_uat():
 
     current_periode_id = periode.id if periode else None
 
-    query = HasilRekomendasi.query.join(User).join(Jurusan, User.jurusan_id == Jurusan.id)
+    # PERBAIKAN: outerjoin Jurusan
+    query = HasilRekomendasi.query.join(User).outerjoin(Jurusan, User.jurusan_id == Jurusan.id)
     
     if current_periode_id:
         query = query.filter(HasilRekomendasi.periode_id == current_periode_id)
@@ -292,16 +297,15 @@ def export_uat():
 
     # ==================================================
     # TAMBAHKAN BARIS INI UNTUK MENGECUALIKAN ALIM SUMA
+    # PERBAIKAN: Gunakan User.username karena kolom nisn tidak ada
     # ==================================================
-    query = query.filter(User.nisn != '0046433343')
+    query = query.filter(User.username != '0046433343')
 
     # Ambil semua data awal
     raw_results = query.order_by(User.name.asc()).all()
 
     # ==================================================
     # --- PENCEGAH DUPLIKAT & FILTER NILAI DUMMY (100) ---
-    # Memastikan 1 User ID / NISN hanya diexport 1 kali
-    # dan membuang siswa yang iseng mengisi nilai rapor 100
     # ==================================================
     results = []
     seen_siswa_ids = set()
@@ -377,8 +381,7 @@ def export_uat():
                 available_cats = [c for c in categories if len(grouped[c]) > 0]
                 pointers = {c: 0 for c in categories}
                 
-                # Algoritma Round-Robin: Ambil bergantian 1 per 1 dari tiap kategori.
-                # Jika salah satu kategori habis, kuota otomatis dilarikan ke kategori yang masih ada.
+                # Algoritma Round-Robin
                 while len(chosen) < limit and available_cats:
                     for c in list(available_cats):
                         if len(chosen) >= limit:
@@ -392,7 +395,6 @@ def export_uat():
                 
                 selected_items.extend(chosen)
         
-        # Timpa hasil pencarian dengan data yang sudah di-filter dan di-balance
         results = selected_items
     # ==========================================
 
@@ -473,7 +475,7 @@ def export_uat():
 
         data_items.append({
             'name': item.siswa.name,
-            'nisn': item.siswa.nisn,
+            'nisn': item.siswa.username, # PERBAIKAN: Gunakan username
             'kelas': item.tingkat_kelas,
             'keputusan_terbaik': item.keputusan_terbaik,
             'detail_jawaban': detail_jawaban
