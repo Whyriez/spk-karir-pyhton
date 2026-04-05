@@ -30,10 +30,11 @@ export default function Settings() {
     const [data, setData] = useState({
         nama_sekolah: "",
         timezone: "Asia/Jakarta",
-        periode_bulan: "7", // Default Juli
-        periode_tanggal: "1", // Default Tgl 1
+        ganjil_bulan: "7",
+        ganjil_tanggal: "1",
+        genap_bulan: "1",
+        genap_tanggal: "1",
     });
-
     // State khusus Logo
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -223,54 +224,100 @@ export default function Settings() {
                                 </div>
 
                                 {/* SECTION 2: OTOMATISASI */}
-                                <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 -mt-4 -mr-4 text-indigo-100">
-                                        <svg className="w-24 h-24 transform rotate-12" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
-                                        </svg>
-                                    </div>
+                                {/* SECTION 2: OTOMATISASI PERGANTIAN PERIODE */}
+                                <div className="space-y-4">
+                                    <h3 className="text-md font-bold text-gray-800 border-b pb-2">Otomatisasi Periode Akademik</h3>
 
-                                    <h4 className="font-bold text-indigo-900 mb-1 flex items-center gap-2 relative z-10">
-                                        Jadwal Ganti Periode Otomatis
-                                    </h4>
-                                    <p className="text-xs text-indigo-700 mb-4 relative z-10">
-                                        Sistem akan otomatis membuat <strong>Tahun Ajaran Baru</strong> pada tanggal ini setiap tahunnya.
-                                    </p>
-
-                                    <div className="flex gap-4 relative z-10">
-                                        <div className="w-1/3">
-                                            <label className="block text-xs font-bold text-indigo-800 mb-1">Tanggal</label>
-                                            <input
-                                                type="number"
-                                                min={1} max={31}
-                                                className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
-                                                value={data.periode_tanggal}
-                                                onChange={(e) => setData({ ...data, periode_tanggal: e.target.value })}
-                                            />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* SEMESTER GANJIL (Tahun Ajaran Baru & Kenaikan Kelas) */}
+                                        <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 -mt-2 -mr-2 text-indigo-100 opacity-50">
+                                                <svg className="w-20 h-20 transform rotate-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                            </div>
+                                            <h4 className="font-bold text-indigo-900 mb-1 relative z-10 flex items-center gap-1">
+                                                Semester Ganjil
+                                                <span className="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full">Kenaikan Kelas</span>
+                                            </h4>
+                                            <p className="text-xs text-indigo-700 mb-4 relative z-10 h-8">
+                                                Tahun Ajaran Baru dimulai. Sistem akan otomatis memproses <strong>kenaikan kelas</strong> siswa.
+                                            </p>
+                                            <div className="flex gap-3 relative z-10">
+                                                <div className="w-1/3">
+                                                    <label className="block text-xs font-bold text-indigo-800 mb-1">Tgl</label>
+                                                    <input type="number" min={1} max={31}
+                                                        className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
+                                                        value={data.ganjil_tanggal}
+                                                        onChange={(e) => setData({ ...data, ganjil_tanggal: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="w-2/3">
+                                                    <label className="block text-xs font-bold text-indigo-800 mb-1">Bulan</label>
+                                                    <select className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
+                                                        value={data.ganjil_bulan}
+                                                        onChange={(e) => setData({ ...data, ganjil_bulan: e.target.value })}
+                                                    >
+                                                        <option value="1">Januari</option>
+                                                        <option value="2">Februari</option>
+                                                        <option value="3">Maret</option>
+                                                        <option value="4">April</option>
+                                                        <option value="5">Mei</option>
+                                                        <option value="6">Juni</option>
+                                                        <option value="7">Juli (Umumnya)</option>
+                                                        <option value="8">Agustus</option>
+                                                        <option value="9">September</option>
+                                                        <option value="10">Oktober</option>
+                                                        <option value="11">November</option>
+                                                        <option value="12">Desember</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="w-2/3">
-                                            <label className="block text-xs font-bold text-indigo-800 mb-1">Bulan</label>
-                                            <select
-                                                className="block w-full border-indigo-200 rounded-md text-sm focus:ring-indigo-500 bg-white/80"
-                                                value={data.periode_bulan}
-                                                onChange={(e) => setData({ ...data, periode_bulan: e.target.value })}
-                                            >
-                                                <option value="1">Januari</option>
-                                                <option value="2">Februari</option>
-                                                <option value="3">Maret</option>
-                                                <option value="4">April</option>
-                                                <option value="5">Mei</option>
-                                                <option value="6">Juni</option>
-                                                <option value="7">Juli (Tahun Ajaran Baru)</option>
-                                                <option value="8">Agustus</option>
-                                                <option value="9">September</option>
-                                                <option value="10">Oktober</option>
-                                                <option value="11">November</option>
-                                                <option value="12">Desember</option>
-                                            </select>
+
+                                        {/* SEMESTER GENAP */}
+                                        <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-100 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 -mt-2 -mr-2 text-emerald-100 opacity-50">
+                                                <svg className="w-20 h-20 transform -rotate-12" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2z" /></svg>
+                                            </div>
+                                            <h4 className="font-bold text-emerald-900 mb-1 relative z-10">
+                                                Semester Genap
+                                            </h4>
+                                            <p className="text-xs text-emerald-700 mb-4 relative z-10 h-8">
+                                                Periode berganti, <strong>tidak ada</strong> perubahan pada tingkat kelas siswa saat ini.
+                                            </p>
+                                            <div className="flex gap-3 relative z-10">
+                                                <div className="w-1/3">
+                                                    <label className="block text-xs font-bold text-emerald-800 mb-1">Tgl</label>
+                                                    <input type="number" min={1} max={31}
+                                                        className="block w-full border-emerald-200 rounded-md text-sm focus:ring-emerald-500 bg-white/80"
+                                                        value={data.genap_tanggal}
+                                                        onChange={(e) => setData({ ...data, genap_tanggal: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="w-2/3">
+                                                    <label className="block text-xs font-bold text-emerald-800 mb-1">Bulan</label>
+                                                    <select className="block w-full border-emerald-200 rounded-md text-sm focus:ring-emerald-500 bg-white/80"
+                                                        value={data.genap_bulan}
+                                                        onChange={(e) => setData({ ...data, genap_bulan: e.target.value })}
+                                                    >
+                                                        <option value="1">Januari (Umumnya)</option>
+                                                        <option value="2">Februari</option>
+                                                        <option value="3">Maret</option>
+                                                        <option value="4">April</option>
+                                                        <option value="5">Mei</option>
+                                                        <option value="6">Juni</option>
+                                                        <option value="7">Juli</option>
+                                                        <option value="8">Agustus</option>
+                                                        <option value="9">September</option>
+                                                        <option value="10">Oktober</option>
+                                                        <option value="11">November</option>
+                                                        <option value="12">Desember</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
 
                                 <div className="flex justify-end pt-4 border-t border-gray-100">
                                     <PrimaryButton disabled={processing} className="px-6 py-2 bg-gray-800 hover:bg-gray-700 shadow-lg">

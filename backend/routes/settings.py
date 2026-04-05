@@ -17,12 +17,14 @@ def index():
     settings_list = Setting.query.all()
     settings_dict = {item.key: item.value for item in settings_list}
 
-    # Siapkan default values mirip Controller Laravel
+    # Siapkan default values
     response_data = {
         'nama_sekolah': settings_dict.get('nama_sekolah', ''),
         'timezone': settings_dict.get('timezone', 'Asia/Jakarta'),
-        'periode_bulan': settings_dict.get('periode_bulan', '7'),  # Default Juli
-        'periode_tanggal': settings_dict.get('periode_tanggal', '1'),  # Default Tgl 1
+        'ganjil_bulan': settings_dict.get('ganjil_bulan', '7'),  # Default Juli
+        'ganjil_tanggal': settings_dict.get('ganjil_tanggal', '1'), 
+        'genap_bulan': settings_dict.get('genap_bulan', '1'),    # Default Januari
+        'genap_tanggal': settings_dict.get('genap_tanggal', '1'),
         'school_logo': settings_dict.get('school_logo', None)
     }
 
@@ -38,8 +40,10 @@ def update():
 
     data = request.get_json()
 
+    # --- PERUBAHAN DISINI ---
     # List key yang diizinkan untuk diupdate
-    allowed_keys = ['nama_sekolah', 'timezone', 'periode_bulan', 'periode_tanggal']
+    allowed_keys = ['nama_sekolah', 'timezone', 'ganjil_bulan', 'ganjil_tanggal', 'genap_bulan', 'genap_tanggal']
+    # ------------------------
 
     try:
         for key in allowed_keys:

@@ -391,6 +391,9 @@ def calculate_bwm_weights(criteria_codes, best_code, worst_code, best_to_others,
 
     # Batasan Best-to-Others: |wb - abj * wj| <= ksi
     for code in criteria_codes:
+        if code == best_code: 
+            continue
+            
         j_idx = idx[code]
         b_idx = idx[best_code]
         a_bj = float(best_to_others.get(str(code), 1))
@@ -409,6 +412,9 @@ def calculate_bwm_weights(criteria_codes, best_code, worst_code, best_to_others,
 
     # Batasan Others-to-Worst: |wj - ajw * ww| <= ksi
     for code in criteria_codes:
+        if code == worst_code: 
+            continue  # PERBAIKAN 1: Lewati iterasi jika membandingkan Worst dengan dirinya sendiri
+            
         j_idx = idx[code]
         w_idx = idx[worst_code]
         a_jw = float(others_to_worst.get(str(code), 1))
@@ -443,7 +449,9 @@ def calculate_bwm_weights(criteria_codes, best_code, worst_code, best_to_others,
 
     # Hitung CR (Consistency Ratio) sesuai Tabel 2.1 Proposal Hal 29
     ci_table = {1: 0, 2: 0.44, 3: 1.0, 4: 1.63, 5: 2.3, 6: 3.0, 7: 3.73, 8: 4.47, 9: 5.23}
-    a_bw = float(best_to_others.get(str(idx[worst_code]), 9))
+    
+    # PERBAIKAN 2: Ambil a_bw menggunakan key kode string langsung, bukan idx integer
+    a_bw = float(best_to_others.get(str(worst_code), 9))
     ci = ci_table.get(int(a_bw), 5.23)
 
     cr = ksi / ci if ci > 0 else 0

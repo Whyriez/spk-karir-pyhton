@@ -129,7 +129,6 @@ def store():
             kategori=data.get('kategori', 'kuesioner'),
             sumber_nilai=data.get('sumber_nilai', 'input_siswa'),
             penanggung_jawab=data.get('penanggung_jawab', 'gurubk'),
-            tampil_di_siswa=bool(data.get('tampil_di_siswa', True)),
             target_jalur=data.get('target_jalur', 'all'),
             skala_maks=float(data.get('skala_maks', 5)),
             jalur_reverse=data.get('jalur_reverse') or None
