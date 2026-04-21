@@ -10,7 +10,7 @@ monitoring_bp = Blueprint('monitoring', __name__)
 
 def paginate_response(pagination, endpoint, **kwargs):
     """
-    Helper untuk membuat format pagination mirip Laravel
+    Helper untuk membuat format pagination
     """
     links = []
     links.append({
@@ -106,14 +106,18 @@ def index():
     filter_kelas = request.args.get('kelas', '')
 
     # 2. Tentukan Periode
-    if periode_id:
-        periode = Periode.query.get(periode_id)
+    if periode_id == '':
+        # Jika dropdown "Semua Periode" dipilih
+        current_periode_id = None
+    elif periode_id is not None:
+        # Jika memilih periode spesifik
+        current_periode_id = int(periode_id)
     else:
+        # Jika tidak ada parameter (default load)
         periode = Periode.query.filter_by(is_active=True).first()
         if not periode:
             periode = Periode.query.order_by(desc(Periode.id)).first()
-
-    current_periode_id = periode.id if periode else None
+        current_periode_id = periode.id if periode else None
 
     # 3. Query Data
     data_items = []
@@ -167,15 +171,20 @@ def index():
 
     else:
         # --- KASUS 2: BELUM MENGISI ---
-        subquery = db.session.query(HasilRekomendasi.siswa_id) \
-            .filter(HasilRekomendasi.periode_id == current_periode_id)
+        subquery = db.session.query(HasilRekomendasi.siswa_id)
+        if current_periode_id:
+            subquery = subquery.filter(HasilRekomendasi.periode_id == current_periode_id)
 
-        # PERBAIKAN: Gunakan outerjoin untuk Jurusan
+        if current_periode_id:
+            join_kondisi = and_(
+                RiwayatKelas.siswa_id == User.id,
+                RiwayatKelas.periode_id == current_periode_id
+            )
+        else:
+            join_kondisi = (RiwayatKelas.siswa_id == User.id)
+
         query = db.session.query(User, RiwayatKelas.tingkat_kelas) \
-            .outerjoin(RiwayatKelas, and_(
-            RiwayatKelas.siswa_id == User.id,
-            RiwayatKelas.periode_id == current_periode_id
-        )) \
+            .outerjoin(RiwayatKelas, join_kondisi) \
             .outerjoin(Jurusan, User.jurusan_id == Jurusan.id) \
             .filter(User.role == RoleEnum.siswa) \
             .filter(~User.id.in_(subquery))
@@ -398,6 +407,240 @@ def export_uat():
         results = selected_items
     # ==========================================
 
+    semua_kriteria = Kriteria.query.order_by(Kriteria.id.asc()).all()
+
+    data_items = []
+    for item in results:
+        detail_jawaban = []
+
+        for kriteria in semua_kriteria:
+            nilai_angka = None
+
+            if kriteria.sumber_nilai.name == 'static_jurusan':
+                nsj = NilaiStaticJurusan.query.filter_by(
+                    jurusan_id=item.siswa.jurusan_id, 
+                    kriteria_id=kriteria.id
+                ).first()
+                if nsj is not None:
+                    nilai_angka = nsj.nilai
+            else:
+                ns = NilaiSiswa.query.filter_by(
+                    siswa_id=item.siswa.id, 
+                    kriteria_id=kriteria.id
+                ).first()
+                if ns is not None:
+                    nilai_angka = ns.nilai_input
+
+            if nilai_angka is None:
+                continue
+
+            str_nilai = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+            display_text = str_nilai
+            tipe_input_str = str(kriteria.tipe_input).split('.')[-1]
+            label_ditemukan = ""
+
+            if tipe_input_str == 'likert':
+                likert_map = {
+                    1: "Sangat Kurang / Sangat Rendah",
+                    2: "Kurang / Rendah",
+                    3: "Cukup",
+                    4: "Baik / Tinggi",
+                    5: "Sangat Baik / Sangat Tinggi"
+                }
+                label_ditemukan = likert_map.get(int(nilai_angka), "")
+
+            elif tipe_input_str == 'select' and kriteria.opsi_pilihan:
+                opsi = kriteria.opsi_pilihan
+                if isinstance(opsi, str):
+                    try:
+                        opsi = json.loads(opsi)
+                    except json.JSONDecodeError:
+                        pass
+                
+                if isinstance(opsi, list):
+                    for opt in opsi:
+                        if isinstance(opt, dict):
+                            opt_val = opt.get('val', opt.get('value', opt.get('id')))
+                            opt_label = opt.get('label', opt.get('keterangan', opt.get('text')))
+                            if opt_val is not None:
+                                try:
+                                    if float(opt_val) == float(nilai_angka):
+                                        label_ditemukan = str(opt_label)
+                                        break
+                                except (ValueError, TypeError):
+                                    pass
+
+                elif isinstance(opsi, dict):
+                    val_key = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+                    label_ditemukan = opsi.get(val_key, opsi.get(str(nilai_angka), ''))
+
+            if label_ditemukan:
+                display_text = f"{str_nilai} ({label_ditemukan})"
+
+            detail_jawaban.append({
+                'kriteria': kriteria.nama,
+                'nilai': display_text  
+            })
+
+        data_items.append({
+            'name': item.siswa.name,
+            'nisn': item.siswa.username, # PERBAIKAN: Gunakan username
+            'kelas': item.tingkat_kelas,
+            'keputusan_terbaik': item.keputusan_terbaik,
+            'detail_jawaban': detail_jawaban
+        })
+
+    return jsonify({'data': data_items}), 200
+
+
+@monitoring_bp.route('/export-uat-final', methods=['GET'], strict_slashes=False)
+@jwt_required()
+def export_uat_final():
+    claims = get_jwt()
+    current_user_id = get_jwt_identity()
+    role = claims.get('role')
+
+    if role not in ['admin', 'pakar']:
+        return jsonify({'msg': 'Akses ditolak'}), 403
+
+    is_kaprodi = False
+    kaprodi_jurusan_id = None
+    if role == 'pakar':
+        current_user = User.query.get(current_user_id)
+        if current_user and current_user.jenis_pakar == 'kaprodi':
+            is_kaprodi = True
+            kaprodi_jurusan_id = current_user.jurusan_id
+
+    periode_id = request.args.get('periode_id')
+    # --- TAMBAHAN UNTUK 30 SISWA KHUSUS ---
+    khusus_ids_str = request.args.get('khusus_ids', '')
+    khusus_ids = [int(x.strip()) for x in khusus_ids_str.split(',')] if khusus_ids_str else []
+    
+    if periode_id:
+        periode = Periode.query.get(periode_id)
+    else:
+        periode = Periode.query.filter_by(is_active=True).first()
+        if not periode:
+            periode = Periode.query.order_by(desc(Periode.id)).first()
+
+    current_periode_id = periode.id if periode else None
+
+    query = HasilRekomendasi.query.join(User).outerjoin(Jurusan, User.jurusan_id == Jurusan.id)
+    
+    if current_periode_id:
+        query = query.filter(HasilRekomendasi.periode_id == current_periode_id)
+
+    if is_kaprodi and kaprodi_jurusan_id:
+        query = query.filter(User.jurusan_id == kaprodi_jurusan_id)
+
+    # Variabel utama penampung data final
+    results = []
+
+    # =======================================================
+    # 1. LOGIKA MODE 30 SISWA KHUSUS (TERURUT MANUAL)
+    # =======================================================
+    if khusus_ids:
+        raw_results = query.filter(User.id.in_(khusus_ids)).all()
+        
+        # Buat dictionary map ID -> Objek agar mudah disusun ulang
+        results_map = {}
+        for item in raw_results:
+            if item.siswa_id not in results_map:
+                results_map[item.siswa_id] = item
+        
+        # Susun ulang masukkan ke 'results' sesuai urutan ID di frontend
+        for sid in khusus_ids:
+            if sid in results_map:
+                results.append(results_map[sid])
+
+    # =======================================================
+    # 2. LOGIKA NORMAL (SEMUA SISWA, DIFILTER & BALANCING)
+    # =======================================================
+    else:
+        query = query.filter(User.username != '0046433343')
+        raw_results = query.order_by(User.name.asc()).all()
+
+        seen_siswa_ids = set()
+        for item in raw_results:
+            if item.siswa_id not in seen_siswa_ids:
+                has_score_100 = False
+                nilai_siswa_list = NilaiSiswa.query.filter_by(siswa_id=item.siswa_id).all()
+                for ns in nilai_siswa_list:
+                    if ns.nilai_input:
+                        try:
+                            if float(ns.nilai_input) >= 100:
+                                has_score_100 = True
+                                break
+                        except (ValueError, TypeError):
+                            pass 
+                
+                if has_score_100:
+                    continue
+
+                results.append(item)
+                seen_siswa_ids.add(item.siswa_id)
+
+        # LOGIKA BALANCING (HANYA BERJALAN JIKA BUKAN MODE KHUSUS)
+        limit_10 = request.args.get('limit_10', type=int, default=0)
+        limit_11 = request.args.get('limit_11', type=int, default=0)
+        limit_12 = request.args.get('limit_12', type=int, default=0)
+        is_balanced = request.args.get('balanced', 'false').lower() == 'true'
+
+        total_limit = limit_10 + limit_11 + limit_12
+
+        if total_limit > 0:
+            data_by_class = {'10': [], '11': [], '12': []}
+            for item in results:
+                kls = str(item.tingkat_kelas)
+                if kls in data_by_class:
+                    data_by_class[kls].append(item)
+            
+            limits = {'10': limit_10, '11': limit_11, '12': limit_12}
+            selected_items = []
+
+            for kls, limit in limits.items():
+                if limit <= 0:
+                    continue
+                
+                items_in_class = data_by_class[kls]
+                random.shuffle(items_in_class) 
+                
+                if not is_balanced:
+                    selected_items.extend(items_in_class[:limit])
+                else:
+                    grouped = {'Melanjutkan Studi': [], 'Bekerja': [], 'Berwirausaha': []}
+                    for it in items_in_class:
+                        dec = str(it.keputusan_terbaik).lower()
+                        if 'studi' in dec: grouped['Melanjutkan Studi'].append(it)
+                        elif 'kerja' in dec: grouped['Bekerja'].append(it)
+                        elif 'wirausaha' in dec: grouped['Berwirausaha'].append(it)
+                        else:
+                            cat = random.choice(list(grouped.keys()))
+                            grouped[cat].append(it)
+                            
+                    chosen = []
+                    categories = ['Melanjutkan Studi', 'Bekerja', 'Berwirausaha']
+                    available_cats = [c for c in categories if len(grouped[c]) > 0]
+                    pointers = {c: 0 for c in categories}
+                    
+                    while len(chosen) < limit and available_cats:
+                        for c in list(available_cats):
+                            if len(chosen) >= limit:
+                                break
+                            
+                            if pointers[c] < len(grouped[c]):
+                                chosen.append(grouped[c][pointers[c]])
+                                pointers[c] += 1
+                            else:
+                                available_cats.remove(c)
+                    
+                    selected_items.extend(chosen)
+            
+            results = selected_items
+
+    # =======================================================
+    # 3. MENGUBAH DATA MENJADI FORMAT JSON DENGAN DETAIL KRITERIA
+    # =======================================================
     semua_kriteria = Kriteria.query.order_by(Kriteria.id.asc()).all()
 
     data_items = []

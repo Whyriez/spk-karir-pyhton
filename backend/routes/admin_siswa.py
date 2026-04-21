@@ -37,11 +37,21 @@ def get_siswa():
         query = query.filter(User.jurusan_id == int(filter_jurusan))
 
     # Eksekusi Filter Kelas (Membutuhkan JOIN dengan RiwayatKelas)
-    if filter_kelas and periode_aktif:
-        query = query.join(RiwayatKelas, User.id == RiwayatKelas.siswa_id).filter(
-            RiwayatKelas.periode_id == periode_aktif.id,
-            RiwayatKelas.tingkat_kelas == filter_kelas
+    if filter_kelas:
+        query = query.join(
+            RiwayatKelas, User.id == RiwayatKelas.siswa_id
         )
+
+        if filter_kelas == "Lulus":
+            query = query.filter(
+                RiwayatKelas.status_akhir == "Lulus"
+            )
+        else:
+            if periode_aktif:
+                query = query.filter(
+                    RiwayatKelas.periode_id == periode_aktif.id,
+                    RiwayatKelas.tingkat_kelas == filter_kelas
+                )
 
     # Eksekusi Pencarian Nama/NISN
     if search_query:
@@ -61,15 +71,24 @@ def get_siswa():
 
         # Cari kelas di RiwayatKelas berdasarkan Periode Aktif
         kelas_str = '-'
-        status_akhir = 'Aktif'
-        if periode_aktif:
-            riwayat = RiwayatKelas.query.filter_by(
-                siswa_id=s.id,
-                periode_id=periode_aktif.id
-            ).first()
-            if riwayat:
-                kelas_str = riwayat.tingkat_kelas
-                status_akhir = riwayat.status_akhir
+        status_akhir = 'Tidak Terdaftar'
+
+        riwayat_terakhir = RiwayatKelas.query.filter_by(siswa_id=s.id).order_by(RiwayatKelas.id.desc()).first()
+
+        if riwayat_terakhir:
+            if riwayat_terakhir.status_akhir == 'Lulus':
+                # Jika riwayat terakhirnya lulus, dia adalah Alumni
+                kelas_str = '-' 
+                status_akhir = 'Lulus'
+            else:
+                # Jika belum lulus, cek apakah dia ada di periode yang sedang aktif
+                if periode_aktif and riwayat_terakhir.periode_id == periode_aktif.id:
+                    kelas_str = riwayat_terakhir.tingkat_kelas
+                    status_akhir = riwayat_terakhir.status_akhir
+                else:
+                    # Punya riwayat lama (dropout/berhenti/data tertinggal), tapi tidak terdaftar di periode saat ini
+                    kelas_str = riwayat_terakhir.tingkat_kelas
+                    status_akhir = 'Tidak Aktif'
 
         data.append({
             'id': s.id,

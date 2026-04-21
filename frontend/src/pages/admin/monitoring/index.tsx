@@ -67,6 +67,12 @@ export default function MonitoringIndex() {
     const [catatanInput, setCatatanInput] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    const targetIds30 = [1884, 1895, 1894, 1903, 1881, 1888, 1879, 1882, 1892, 1877, 1900, 1891, 1901, 1899, 1880, 1935, 1918, 1929, 1933, 1921, 1917, 1926, 1912, 1936, 1924, 1909, 1932, 1915, 1919, 1938];
+    const [isModalKhususOpen, setIsModalKhususOpen] = useState(false);
+    const [dataKhusus, setDataKhusus] = useState<any[]>([]);
+    const [pakarSelections, setPakarSelections] = useState<Record<string, string>>({});
+    const [loadingKhusus, setLoadingKhusus] = useState(false);
+
     // State Modal Export Custom
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [exportTarget, setExportTarget] = useState<'admin' | 'pakar'>('pakar');
@@ -91,20 +97,155 @@ export default function MonitoringIndex() {
         setIsExportModalOpen(true);
     };
 
+    const openModalKhusus = async () => {
+        setIsModalKhususOpen(true);
+        setLoadingKhusus(true);
+        try {
+            const response = await apiClient.get('/monitoring/export-uat-final', {
+                params: {
+                    periode_id: selectedPeriode,
+                    khusus_ids: targetIds30.join(',')
+                }
+            });
+            setDataKhusus(response.data.data);
+
+            // Inisialisasi state dropdown pilihan pakar
+            const initSel: Record<string, string> = {};
+            response.data.data.forEach((d: any) => {
+                initSel[d.nisn] = '';
+            });
+            setPakarSelections(initSel);
+        } catch (error) {
+            console.error("Gagal load data 30 khusus", error);
+        } finally {
+            setLoadingKhusus(false);
+        }
+    };
+
+    const handlePrintKhusus = () => {
+        const title = 'LEMBAR VALIDASI PAKAR (30 SISWA KHUSUS)';
+        const desc = 'Komparasi Hasil Rekomendasi Sistem VS Rekomendasi Pakar';
+
+        const printContents = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>${title}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+                <style>
+                    body { font-family: 'Inter', sans-serif; padding: 20px; color: #1f2937; line-height: 1.5; background: #fff; }
+                    @media print {
+                        body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        table { page-break-inside: auto; }
+                        tr { page-break-inside: avoid; page-break-after: auto; }
+                    }
+                    .kop-header { text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; }
+                    .kop-header h2 { margin: 0 0 5px 0; font-size: 18px; color: #111827; }
+                    .kop-header p { margin: 0; color: #6b7280; font-size: 12px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+                    th, td { border: 1px solid #d1d5db; padding: 12px 10px; vertical-align: top; }
+                    th { background-color: #f3f4f6; color: #374151; font-weight: 700; text-transform: uppercase; font-size: 11px; text-align: left; }
+                    .siswa-name { font-size: 13px; font-weight: 700; color: #111827; }
+                    .siswa-nisn { font-size: 11px; color: #6b7280; }
+                    .jawaban-list { list-style: none; margin: 0; padding: 0; }
+                    .jawaban-list li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
+                    .k-label { color: #4b5563; max-width: 60%; }
+                    .k-val { font-weight: 600; text-align: right; }
+                    .tf-container { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+                    .tf-item { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: #4b5563; }
+                    .box { width: 14px; height: 14px; border: 1.5px solid #9ca3af; border-radius: 3px; margin-right: 8px; }
+                    .sys-rec { font-weight: 700; color: #0369a1; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; display: inline-block; border: 1px solid #bae6fd; }
+                    .pakar-rec { font-weight: 700; color: #15803d; background: #f0fdf4; padding: 4px 8px; border-radius: 4px; display: inline-block; border: 1px solid #bbf7d0; }
+                </style>
+            </head>
+            <body>
+                <div class="kop-header">
+                    <h2>${title}</h2>
+                    <p>${desc}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 3%; text-align: center;">No</th>
+                            <th style="width: 20%;">Identitas Siswa</th>
+                            <th style="width: 37%;">Profil Jawaban / Kriteria Analisis</th>
+                            <th style="width: 15%;">Rekomendasi Pakar</th>
+                            <th style="width: 15%;">Rekomendasi Sistem</th>
+                            <th style="width: 10%; text-align: center;">Sesuai?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${dataKhusus.map((item: any, i: number) => {
+            const listJawaban = item.detail_jawaban.map((dj: any) => `
+                                <li><span class="k-label">${dj.kriteria}</span><span class="k-val">${dj.nilai}</span></li>
+                            `).join('');
+
+            const pakar = pakarSelections[item.nisn] || '-';
+
+            // --- LOGIKA CEKLIS OTOMATIS ---
+            // Cek apakah pakar sudah memilih sesuatu, dan bandingkan hasilnya
+            const isSesuai = pakar !== '-' && pakar === item.keputusan_terbaik;
+            const isTidakSesuai = pakar !== '-' && pakar !== item.keputusan_terbaik;
+
+            return `
+                            <tr>
+                                <td style="text-align: center; color: #6b7280;">${i + 1}</td>
+                                <td>
+                                    <div class="siswa-name">${item.name}</div>
+                                    <div class="siswa-nisn">NISN: ${item.nisn || '-'}</div>
+                                    <div class="siswa-nisn" style="font-size: 10px; color: #9ca3af;">User ID: ${targetIds30[i]}</div>
+                                    <div class="siswa-nisn">Kelas: ${item.kelas || '-'}</div>
+                                </td>
+                                <td><ul class="jawaban-list">${listJawaban}</ul></td>
+                                <td><span class="pakar-rec">${pakar}</span></td>
+                                <td><span class="sys-rec">${item.keputusan_terbaik}</span></td>
+                                <td>
+                                    <div class="tf-container">
+                                        <div class="tf-item">
+                                            <div class="box ${isSesuai ? 'checked' : ''}">${isSesuai ? '✓' : ''}</div> Sesuai
+                                        </div>
+                                        <div class="tf-item">
+                                            <div class="box ${isTidakSesuai ? 'checked' : ''}">${isTidakSesuai ? '✓' : ''}</div> Tidak
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            `;
+        }).join('')}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContents);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 700);
+        }
+        setIsModalKhususOpen(false);
+    };
+
     const handlePrintUAT = async () => {
         try {
             const response = await apiClient.get('/monitoring/export-uat', {
                 params: {
                     periode_id: selectedPeriode,
                     kelas: selectedKelas,
-                    jurusan_id: selectedJurusan, 
+                    jurusan_id: selectedJurusan,
                     limit_10: exportConfig.limit10 || 0,
                     limit_11: exportConfig.limit11 || 0,
                     limit_12: exportConfig.limit12 || 0,
                     balanced: exportConfig.balanced
                 }
             });
-            
+
             let data = response.data.data;
 
             // --- PENGECUALIAN DATA ALIM SUMA ---
@@ -176,15 +317,15 @@ export default function MonitoringIndex() {
                         </thead>
                         <tbody>
                             ${data.map((item: any, i: number) => {
-                                const listJawaban = item.detail_jawaban
-                                    .map((dj: any) => `
+                const listJawaban = item.detail_jawaban
+                    .map((dj: any) => `
                                         <li>
                                             <span class="k-label">${dj.kriteria}</span>
                                             <span class="k-val">${dj.nilai}</span>
                                         </li>
                                     `).join('');
 
-                                return `
+                return `
                                 <tr>
                                     <td style="text-align: center; color: #6b7280;">${i + 1}</td>
                                     <td>
@@ -208,7 +349,7 @@ export default function MonitoringIndex() {
                                     </td>
                                 </tr>
                                 `;
-                            }).join('')}
+            }).join('')}
                         </tbody>
                     </table>
                 </body>
@@ -374,7 +515,7 @@ export default function MonitoringIndex() {
                             </div>
 
                             {/* Tombol PDF di Baris Bawah */}
-                            {selectedStatus === 'sudah' && (
+                            {/* {selectedStatus === 'sudah' && (
                                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
                                         onClick={() => openExportModal('pakar')}
@@ -389,7 +530,14 @@ export default function MonitoringIndex() {
                                         📊 Unduh PDF Rekapitulasi Admin
                                     </button>
                                 </div>
-                            )}
+                            )} */}
+
+                            {/* <button
+                                onClick={openModalKhusus}
+                                className="inline-flex items-center px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-yellow-100 transition ease-in-out duration-150"
+                            >
+                                ⭐ Unduh 30 Siswa Khusus
+                            </button> */}
                         </div>
 
                         {/* --- TABLE SECTION --- */}
@@ -611,6 +759,74 @@ export default function MonitoringIndex() {
                         </SecondaryButton>
                         <PrimaryButton onClick={handlePrintUAT}>
                             Generate PDF
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* --- MODAL INPUT PAKAR 30 SISWA --- */}
+            <Modal show={isModalKhususOpen} onClose={() => setIsModalKhususOpen(false)}>
+                <div className="p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 pb-3 border-b border-gray-100">
+                        Isi Rekomendasi Pakar (30 Siswa)
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Pilih rekomendasi pakar untuk masing-masing siswa sebelum mencetak PDF.
+                    </p>
+
+                    {loadingKhusus ? (
+                        <div className="py-8 text-center text-gray-500 font-bold">Memuat data siswa...</div>
+                    ) : (
+                        <div className="max-h-[50vh] overflow-y-auto pr-2 border rounded-md">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">Siswa</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">Rekomendasi Sistem</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">Rekomendasi Pakar</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {dataKhusus.map((item) => (
+                                        <tr key={item.nisn} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="font-bold text-gray-900">{item.name}</div>
+                                                <div className="text-xs text-gray-500">{item.nisn}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <BadgeKeputusan label={item.keputusan_terbaik || '-'} />
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <select
+                                                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                                    value={pakarSelections[item.nisn] || ''}
+                                                    onChange={(e) => setPakarSelections({
+                                                        ...pakarSelections,
+                                                        [item.nisn]: e.target.value
+                                                    })}
+                                                >
+                                                    <option value="">-- Pilih Manual --</option>
+                                                    <option value="Melanjutkan Studi">Melanjutkan Studi</option>
+                                                    <option value="Bekerja">Bekerja</option>
+                                                    <option value="Berwirausaha">Berwirausaha</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <SecondaryButton onClick={() => setIsModalKhususOpen(false)}>
+                            Batal
+                        </SecondaryButton>
+                        <PrimaryButton
+                            onClick={handlePrintKhusus}
+                            disabled={loadingKhusus || dataKhusus.length === 0}
+                        >
+                            Generate & Cetak PDF
                         </PrimaryButton>
                     </div>
                 </div>

@@ -140,10 +140,7 @@ def get_static_values(id):
 
         teks_pertanyaan = ""
         if k.list_pertanyaan and len(k.list_pertanyaan) > 0:
-            # Ambil pertanyaan aktif pertama
-            aktif_pertanyaan = [p for p in k.list_pertanyaan if p.is_active]
-            if aktif_pertanyaan:
-                teks_pertanyaan = aktif_pertanyaan[0].teks
+            teks_pertanyaan = k.list_pertanyaan[0].teks
                 
         results.append({
             'kriteria_id': k.id,

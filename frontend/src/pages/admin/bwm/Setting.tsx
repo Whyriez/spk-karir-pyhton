@@ -42,7 +42,7 @@ export default function AdminBwmSetting() {
         try {
             const res = await apiClient.get('/bwm/admin/status');
             setStatusData(res.data);
-            
+
             // Jika status mendeteksi sudah ada bobot di DB, panggil fetchResults agar data tidak hilang saat direfresh
             if (res.data.has_existing_weights) {
                 fetchResults();
@@ -81,16 +81,16 @@ export default function AdminBwmSetting() {
         setLoadingCalc(true);
         try {
             const res = await apiClient.post('/bwm/admin/calculate-final');
-            
+
             // Menampilkan pesan sukses dari backend
             Swal.fire({
                 title: 'Perhitungan Selesai',
                 text: res.data.msg,
                 icon: 'success'
             });
-            
+
             // Refresh status dan fetch ulang tabel hasilnya
-            fetchStatus(); 
+            fetchStatus();
         } catch (error: any) {
             Swal.fire('Gagal', error.response?.data?.msg || 'Terjadi kesalahan server', 'error');
         } finally {
@@ -110,28 +110,26 @@ export default function AdminBwmSetting() {
             <Header>Pengaturan & Kalkulasi Pembobotan</Header>
             <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    
+
                     {/* TABS NAVIGATION */}
                     <div className="mb-6 border-b border-gray-200">
                         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                             <button
                                 onClick={() => setActiveTab('config')}
-                                className={`${
-                                    activeTab === 'config'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                                className={`${activeTab === 'config'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
                             >
                                 <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs ${activeTab === 'config' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100'}`}>1</span>
                                 Konfigurasi FGD
                             </button>
                             <button
                                 onClick={() => setActiveTab('calculate')}
-                                className={`${
-                                    activeTab === 'calculate'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                                className={`${activeTab === 'calculate'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
                             >
                                 <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs ${activeTab === 'calculate' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100'}`}>2</span>
                                 Validasi & Finalisasi
@@ -145,7 +143,7 @@ export default function AdminBwmSetting() {
                             <div className="mb-8 text-center max-w-2xl mx-auto">
                                 <h3 className="text-2xl font-bold text-gray-900">Hasil Forum Group Discussion (FGD)</h3>
                                 <p className="mt-2 text-sm text-gray-500">
-                                    Tentukan kriteria acuan <strong>BEST</strong> (Paling Penting) dan <strong>WORST</strong> (Paling Tidak Penting) berdasarkan kesepakatan rapat dewan guru.
+                                    Tentukan kriteria sebagai <strong>Prioritas Utama</strong> dan <strong>Prioritas Akhir</strong> berdasarkan kesepakatan bersama dalam rapat dewan guru.
                                 </p>
                             </div>
 
@@ -154,16 +152,17 @@ export default function AdminBwmSetting() {
                                     {/* CARD BEST */}
                                     <div className={`relative rounded-xl border-2 p-6 transition-all duration-200 ${bestId ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
                                         <div className="absolute -top-4 left-6 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-emerald-200 shadow-sm">
-                                            Kriteria Terbaik (Best)
+                                            Prioritas Utama (Best)
                                         </div>
                                         <div className="mt-4 flex items-start gap-4">
                                             <div className="p-3 bg-emerald-100 rounded-lg text-emerald-600">
                                                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                                    {/* Icon Bintang (Star) */}
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Kriteria Paling Dominan</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Kriteria Prioritas Utama</label>
                                                 <select value={bestId} onChange={(e) => setBestId(e.target.value)} className="block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm" required>
                                                     <option value="">-- Pilih --</option>
                                                     {kriterias.map((k: any) => (
@@ -177,16 +176,17 @@ export default function AdminBwmSetting() {
                                     {/* CARD WORST */}
                                     <div className={`relative rounded-xl border-2 p-6 transition-all duration-200 ${worstId ? 'border-rose-500 bg-rose-50/30' : 'border-gray-200 bg-white'}`}>
                                         <div className="absolute -top-4 left-6 bg-rose-100 text-rose-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-rose-200 shadow-sm">
-                                            Kriteria Terburuk (Worst)
+                                            Prioritas Akhir (Worst)
                                         </div>
                                         <div className="mt-4 flex items-start gap-4">
                                             <div className="p-3 bg-rose-100 rounded-lg text-rose-600">
                                                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                                    {/* Icon Penanda (Bookmark) */}
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Kriteria Paling Lemah</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Kriteria Prioritas Akhir</label>
                                                 <select value={worstId} onChange={(e) => setWorstId(e.target.value)} className="block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-md shadow-sm" required>
                                                     <option value="">-- Pilih --</option>
                                                     {kriterias.map((k: any) => (
@@ -214,7 +214,7 @@ export default function AdminBwmSetting() {
                     {/* CONTENT: VALIDATION & CALCULATION */}
                     {activeTab === 'calculate' && statusData && (
                         <div className="space-y-6">
-                            
+
                             {/* STATUS CARD (Tetap sama) */}
                             <div className={`p-6 rounded-lg border shadow-sm ${statusData.ready ? 'bg-white border-l-4 border-gray-300 border-l-green-500' : 'bg-white border-l-4 border-gray-300 border-l-rose-500'}`}>
                                 <div className="flex items-start justify-between">
@@ -231,7 +231,7 @@ export default function AdminBwmSetting() {
                                                 Status: {statusData.ready ? 'Siap Finalisasi' : 'Data Belum Lengkap'}
                                             </h3>
                                             <p className="text-sm mt-1 text-gray-600 max-w-2xl">
-                                                {statusData.ready 
+                                                {statusData.ready
                                                     ? "Minimal Guru BK dan 1 Kaprodi telah selesai mengisi. Anda dapat menjalankan kalkulasi."
                                                     : "Terdapat beberapa kriteria yang belum dinilai. Mohon lengkapi sebelum menghitung."}
                                             </p>
@@ -295,7 +295,7 @@ export default function AdminBwmSetting() {
                             {savedResults.length > 0 && (
                                 <div className="mt-8 space-y-6">
                                     <h3 className="text-xl leading-6 font-bold text-gray-900 border-b border-gray-300 pb-2">Hasil Bobot Per Jurusan</h3>
-                                    
+
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {savedResults.map((item, idx) => (
                                             <div key={idx} className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
@@ -319,7 +319,7 @@ export default function AdminBwmSetting() {
                                                                 <tr key={kode} className="hover:bg-gray-50 transition-colors">
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-indigo-600">{kode}</td>
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                                                                        {kriterias.find((k:any) => k.kode === kode)?.nama || '-'}
+                                                                        {kriterias.find((k: any) => k.kode === kode)?.nama || '-'}
                                                                     </td>
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-800 text-right">
                                                                         {(val * 100).toFixed(2)}%

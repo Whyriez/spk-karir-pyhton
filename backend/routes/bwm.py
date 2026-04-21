@@ -265,7 +265,7 @@ def calculate_final_bwm():
                     bk = BobotKriteria(
                         kriteria_id=code_to_id[code],
                         nilai_bobot=weight,
-                        jurusan_id=jurusan.id # <--- INI KUNCINYA
+                        jurusan_id=jurusan.id
                     )
                     db.session.add(bk)
 
@@ -419,6 +419,10 @@ def calculate_bwm_weights(criteria_codes, best_code, worst_code, best_to_others,
         w_idx = idx[worst_code]
         a_jw = float(others_to_worst.get(str(code), 1))
 
+# INFO: linprog tidak support nilai mutlak (|X| <= Y), jadi wajib di-linearisasi jadi 2 kondisi:
+        # 1. wj - a_jw*ww - ksi <= 0  (Kondisi Positif)
+        # 2. -wj + a_jw*ww - ksi <= 0 (Kondisi Negatif)
+        
         # wj - a_jw*ww - ksi <= 0
         row1 = [0] * (n + 1)
         row1[j_idx], row1[w_idx], row1[n] = 1, -a_jw, -1

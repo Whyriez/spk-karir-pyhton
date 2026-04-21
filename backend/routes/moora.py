@@ -159,11 +159,12 @@ def calculate_ranking(periode_id, user_id):
 @jwt_required()
 def get_result():
     current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id) # Pindahkan query user ke atas sini
+    user = User.query.get(current_user_id) 
     
     history_id = request.args.get('id')
     hasil = None
     periode_nama = "-"
+    is_current_period_filled = True
 
     if history_id:
         hasil = HasilRekomendasi.query.filter_by(id=history_id, siswa_id=current_user_id).first()
@@ -187,81 +188,55 @@ def get_result():
                 kriteria_count = Kriteria.query.count()
                 bobot_count = BobotKriteria.query.filter_by(jurusan_id=user.jurusan_id).count()
                 if bobot_count < kriteria_count:
-                    # Jika bobot belum ada, jangan suruh siswa isi form, tapi beritahu yang sebenarnya
                     return jsonify({'msg': 'Hasil rekomendasi belum tersedia karena Admin/Kaprodi jurusan Anda belum memfinalisasi perhitungan bobot.'}), 404
 
-            # --- JIKA BOBOT AMAN, BARU CEK APAKAH SISWA SUDAH ISI PENILAIAN ---
-            has_input = db.session.query(NilaiSiswa).join(Kriteria).filter(
-                NilaiSiswa.siswa_id == current_user_id,
-                Kriteria.sumber_nilai == 'input_siswa'
-            ).first()
+            # --- CEK APAKAH SISWA SUDAH MEMILIKI HASIL DI PERIODE INI ---
+            hasil_sekarang = HasilRekomendasi.query.filter_by(siswa_id=current_user_id, periode_id=periode_aktif.id).first()
 
-            if not has_input:
-                return jsonify({'msg': 'Belum ada data penilaian. Silakan isi kuesioner terlebih dahulu.'}), 404
-
-            # Hitung baru/Update
-            periode_nama = periode_aktif.nama_periode
-            hasil, error = calculate_ranking(periode_aktif.id, current_user_id)
-            if error: return jsonify({'hasil': None, 'msg': error}), 200
+            if hasil_sekarang:
+                # Siswa SUDAH mengisi untuk periode saat ini, kita pastikan kalkulasinya up-to-date
+                periode_nama = periode_aktif.nama_periode
+                hasil, error = calculate_ranking(periode_aktif.id, current_user_id)
+                if error: return jsonify({'hasil': None, 'msg': error}), 200
+                is_current_period_filled = True
+            else:
+                # Siswa BELUM mengisi periode ini. Kita cari data riwayat lama.
+                hasil_lama = HasilRekomendasi.query.filter_by(siswa_id=current_user_id).order_by(desc(HasilRekomendasi.id)).first()
+                if hasil_lama:
+                    hasil = hasil_lama
+                    periode_nama = hasil_lama.periode.nama_periode if hasil_lama.periode else "-"
+                    is_current_period_filled = False # Kirim flag false ke frontend
+                else:
+                    return jsonify({'msg': 'Belum ada data penilaian. Silakan isi kuesioner terlebih dahulu.'}), 404
 
         else:
-            # Alumni / Tidak Aktif ... (Sisa kode biarkan sama)
+            # Alumni / Tidak Aktif
             hasil = HasilRekomendasi.query.filter_by(siswa_id=current_user_id).order_by(desc(HasilRekomendasi.id)).first()
             if hasil:
                 periode_nama = hasil.periode.nama_periode if hasil.periode else "-"
             else:
                 return jsonify({'msg': 'Belum ada data hasil penilaian.'}), 404
 
-    # Cari Alumni Relevan
+    # Cari Alumni Relevan (Kodenya tetap sama seperti sebelumnya) ...
     alumni_list = []
-    user = User.query.get(current_user_id)
     if user and user.jurusan and hasil:
         keputusan = (hasil.keputusan_terbaik or '').lower()
-        
-        # Normalisasi jurusan (ambil kata kunci utama)
         jurusan_keyword = user.jurusan.nama_jurusan.lower()
 
         query = Alumni.query
 
         if jurusan_keyword:
-            query = query.filter(
-                Alumni.major.ilike(f"%{jurusan_keyword}%")
-            )
+            query = query.filter(Alumni.major.ilike(f"%{jurusan_keyword}%"))
 
         if 'studi' in keputusan:
-            query = query.filter(or_(
-                Alumni.status.ilike("%studi%"),
-                Alumni.status.ilike("%kuliah%"),
-                Alumni.status.ilike("%universitas%"),
-                Alumni.status.ilike("%politeknik%"),
-                Alumni.status.ilike("%institut%")
-            ))
+            query = query.filter(or_(Alumni.status.ilike("%studi%"), Alumni.status.ilike("%kuliah%"), Alumni.status.ilike("%universitas%"), Alumni.status.ilike("%politeknik%"), Alumni.status.ilike("%institut%")))
         elif 'kerja' in keputusan:
-            query = query.filter(or_(
-                Alumni.status.ilike("%kerja%"),
-                Alumni.status.ilike("%bekerja%"),
-                Alumni.status.ilike("%karyawan%"),
-                Alumni.status.ilike("%pegawai%"),
-                Alumni.status.ilike("%pt%")
-            ))
+            query = query.filter(or_(Alumni.status.ilike("%kerja%"), Alumni.status.ilike("%bekerja%"), Alumni.status.ilike("%karyawan%"), Alumni.status.ilike("%pegawai%"), Alumni.status.ilike("%pt%")))
         elif 'wirausaha' in keputusan or 'usaha' in keputusan:
-            query = query.filter(or_(
-                Alumni.status.ilike("%wirausaha%"),
-                Alumni.status.ilike("%usaha%"),
-                Alumni.status.ilike("%bisnis%"),
-                Alumni.status.ilike("%owner%")
-            ))
+            query = query.filter(or_(Alumni.status.ilike("%wirausaha%"), Alumni.status.ilike("%usaha%"), Alumni.status.ilike("%bisnis%"), Alumni.status.ilike("%owner%")))
 
-        # Ambil 5 data terbaru berdasarkan angkatan
         alumnis = query.order_by(Alumni.batch.desc()).all()
-        alumni_list = [
-            {
-                'name': a.name,
-                'batch': a.batch,
-                'status': a.status
-            }
-            for a in alumnis
-        ]
+        alumni_list = [{'name': a.name, 'batch': a.batch, 'status': a.status} for a in alumnis]
 
     return jsonify({
         'hasil': {
@@ -273,5 +248,6 @@ def get_result():
             'riwayat_jawaban': hasil.detail_snapshot or []
         },
         'alumni': alumni_list,
-        'periode': periode_nama
+        'periode': periode_nama,
+        'is_current_period_filled': is_current_period_filled # RETURN FLAG INI KE FRONTEND
     })

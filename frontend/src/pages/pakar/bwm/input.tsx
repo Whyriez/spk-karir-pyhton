@@ -3,6 +3,7 @@ import apiClient from "@/lib/axios";
 import Header from "../../../components/Header.tsx";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { truncateTo4Decimals } from '@/pages/admin/simulation/index.tsx';
 
 const MySwal = withReactContent(Swal);
 
@@ -294,7 +295,7 @@ export default function BwmInput() {
                                 </div>
 
                                 <span className="text-2xl font-mono font-bold tracking-tight block mt-1">
-                                    {crValue !== null ? crValue.toFixed(4) : '-'}
+                                    {crValue !== null ? truncateTo4Decimals(crValue) : '-'}
                                 </span>
                             </div>
                         </div>

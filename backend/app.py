@@ -111,7 +111,7 @@ def serve(path):
 # @scheduler.task('interval', id='cek_periode_harian', seconds=5)
 def cek_periode_harian():
     with app.app_context():
-        # print(f"⏰ [SCHEDULER]: Mengecek jadwal periode... ({datetime.now().strftime('%H:%M:%S')})")
+        print(f"⏰ [SCHEDULER]: Mengecek jadwal periode... ({datetime.now().strftime('%H:%M:%S')})")
 
         sekarang = datetime.now()
         hari_ini = str(sekarang.day)

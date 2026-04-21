@@ -3,7 +3,7 @@ import Header from "../../../components/Header.tsx";
 import PrimaryButton from '@/components/PrimaryButton';
 import apiClient from '@/lib/axios';
 
-const truncateTo4Decimals = (num: number) => {
+export const truncateTo4Decimals = (num: number) => {
     const match = num.toString().match(/^-?\d+(?:\.\d{0,4})?/);
     return match ? match[0] : num.toString();
 };
@@ -130,7 +130,6 @@ function BWMSimulation() {
 // 2. MOORA SIMULATION (STUDENT CAREER MAPPING)
 // ============================================================================
 function MOORASimulation() {
-    // DITAMBAHKAN: Siswa D dan E
     const [students] = useState(['Siswa A (Studi)', 'Siswa B (Kerja)', 'Siswa C (Wirausaha)', 'Siswa D', 'Siswa E']);
 
     // Konfigurasi 8 Kriteria

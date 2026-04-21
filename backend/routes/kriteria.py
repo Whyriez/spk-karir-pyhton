@@ -124,7 +124,7 @@ def store():
             nama=data['nama'],
             tipe_input=data.get('tipe_input', 'likert'),
             # Simpan opsi pilihan (List of dicts)
-            opsi_pilihan=data.get('opsi_pilihan'),  # <--- TAMBAHAN
+            opsi_pilihan=data.get('opsi_pilihan'), 
             atribut=data.get('atribut', 'benefit'),
             kategori=data.get('kategori', 'kuesioner'),
             sumber_nilai=data.get('sumber_nilai', 'input_siswa'),

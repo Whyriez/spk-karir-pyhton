@@ -17,7 +17,6 @@ def index():
     settings_list = Setting.query.all()
     settings_dict = {item.key: item.value for item in settings_list}
 
-    # Siapkan default values
     response_data = {
         'nama_sekolah': settings_dict.get('nama_sekolah', ''),
         'timezone': settings_dict.get('timezone', 'Asia/Jakarta'),
@@ -40,10 +39,7 @@ def update():
 
     data = request.get_json()
 
-    # --- PERUBAHAN DISINI ---
-    # List key yang diizinkan untuk diupdate
     allowed_keys = ['nama_sekolah', 'timezone', 'ganjil_bulan', 'ganjil_tanggal', 'genap_bulan', 'genap_tanggal']
-    # ------------------------
 
     try:
         for key in allowed_keys:

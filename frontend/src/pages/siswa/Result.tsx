@@ -119,9 +119,10 @@ export default function ResultSiswa() {
         );
     }
 
-    const { hasil, alumni, periode } = data;
+    const { hasil, alumni, periode, is_current_period_filled } = data;
     const alumni_relevan = alumni || [];
     const keputusan = hasil.keputusan || '';
+    const catatanGuru = hasil.catatan;
 
     // Ambil history dari response backend
     const riwayatJawaban = hasil.riwayat_jawaban || [];
@@ -148,6 +149,28 @@ export default function ResultSiswa() {
             <Header><h2 className="font-semibold text-xl text-gray-800 leading-tight">Laporan Hasil Analisis Karir</h2></Header>
             <div className="py-8 px-4 sm:px-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+                    {is_current_period_filled === false && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-xl shadow-sm">
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0 mt-0.5">
+                                    <svg className="h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-bold text-yellow-800">Menampilkan Data Riwayat Sebelumnya</h3>
+                                    <div className="mt-1 text-sm text-yellow-700 leading-relaxed">
+                                        <p>Anda belum melakukan pengisian penilaian untuk periode akademik saat ini. Hasil yang ditampilkan di bawah ini adalah dari evaluasi Anda yang terdahulu.</p>
+                                    </div>
+                                    <div className="mt-3">
+                                        <Link to="/siswa/input" className="inline-flex items-center text-sm font-bold text-yellow-800 hover:text-yellow-900 underline">
+                                            Mulai Pengisian Periode Ini &rarr;
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* PERIODE INFO */}
                     <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 flex justify-between items-center">
@@ -273,6 +296,19 @@ export default function ResultSiswa() {
                                 </div>
                                 <button onClick={() => window.print()} className="w-full mt-8 py-2.5 bg-gray-800 text-white rounded-lg font-bold text-sm hover:bg-gray-700 transition">Cetak Laporan PDF</button>
                             </div>
+                            {catatanGuru && (
+                                <div className="bg-amber-50 p-5 rounded-xl border border-amber-200 shadow-sm">
+                                    <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-2 text-sm">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                        Catatan Guru BK
+                                    </h3>
+                                    <p className="text-sm text-amber-900 leading-relaxed italic whitespace-pre-wrap">
+                                        "{catatanGuru}"
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                                 <h4 className="font-bold text-blue-800 text-sm mb-1 italic">Butuh Konsultasi?</h4>
@@ -282,7 +318,7 @@ export default function ResultSiswa() {
                     </div>
                 </div>
 
-                <div className="flex justify-center pt-8 pb-4">
+                {/* <div className="flex justify-center pt-8 pb-4">
                     <Link
                         to="https://forms.gle/t2we3SrY6mQAFQ9o6"
                         target='_BLANK'
@@ -290,7 +326,7 @@ export default function ResultSiswa() {
                     >
                         Isi Formulir Kuesioner
                     </Link>
-                </div>
+                </div> */}
             </div>
 
             {/* MODAL ALUMNI */}

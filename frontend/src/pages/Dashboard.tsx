@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {Link} from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import apiClient from '@/lib/axios';
 import {
     Chart as ChartJS,
@@ -13,7 +13,7 @@ import {
     Legend,
     Filler,
 } from 'chart.js';
-import {Line, Doughnut} from 'react-chartjs-2';
+import { Line, Doughnut } from 'react-chartjs-2';
 import Header from "../components/Header.tsx";
 
 // Register ChartJS Components
@@ -97,11 +97,11 @@ export default function Dashboard() {
                     <div
                         className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-10 text-center text-gray-500 flex flex-col items-center justify-center min-h-[300px]">
                         <svg className="animate-spin h-8 w-8 text-indigo-500 mb-4" xmlns="http://www.w3.org/2000/svg"
-                             fill="none" viewBox="0 0 24 24">
+                            fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    strokeWidth="4"></circle>
+                                strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                         Memuat data dashboard...
                     </div>
@@ -121,7 +121,7 @@ export default function Dashboard() {
 
         // Config Line Chart Siswa
         const lineData = {
-            labels: history.map((h) => `Kelas ${h.kelas}`),
+            labels: history.map((h) => `Kelas ${h.kelas} (${h.label})`),
             datasets: [
                 {
                     label: "Minat Studi",
@@ -166,22 +166,22 @@ export default function Dashboard() {
             plugins: {
                 legend: {
                     position: 'bottom' as const,
-                    labels: {usePointStyle: true, padding: 20},
+                    labels: { usePointStyle: true, padding: 20 },
                 },
                 tooltip: {
                     backgroundColor: "rgba(0, 0, 0, 0.8)",
                     padding: 12,
-                    titleFont: {size: 14},
-                    bodyFont: {size: 13},
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 },
                 },
             },
             scales: {
-                x: {grid: {display: false}},
+                x: { grid: { display: false } },
                 y: {
                     min: 0,
                     max: 1,
-                    grid: {borderDash: [5, 5], color: "#e5e7eb"},
-                    ticks: {padding: 10},
+                    grid: { borderDash: [5, 5], color: "#e5e7eb" },
+                    ticks: { padding: 10 },
                 },
             },
         };
@@ -208,11 +208,11 @@ export default function Dashboard() {
                                 </p>
                                 <div className="mt-6 flex gap-3">
                                     <Link to="/siswa/input"
-                                          className="px-5 py-2.5 bg-white text-indigo-600 font-bold rounded-lg hover:bg-gray-100 transition shadow-sm inline-block">
+                                        className="px-5 py-2.5 bg-white text-indigo-600 font-bold rounded-lg hover:bg-gray-100 transition shadow-sm inline-block">
                                         📝 Update Data Baru
                                     </Link>
                                     <Link to="/siswa/result"
-                                          className="px-5 py-2.5 bg-indigo-700 text-white font-semibold rounded-lg hover:bg-indigo-800 transition border border-indigo-500 inline-block">
+                                        className="px-5 py-2.5 bg-indigo-700 text-white font-semibold rounded-lg hover:bg-indigo-800 transition border border-indigo-500 inline-block">
                                         📄 Lihat Hasil Terakhir
                                     </Link>
                                 </div>
@@ -228,9 +228,9 @@ export default function Dashboard() {
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                                         <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor"
-                                             viewBox="0 0 24 24">
+                                            viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                                                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
                                         </svg>
                                         Grafik Perkembangan Minat
                                     </h3>
@@ -239,7 +239,7 @@ export default function Dashboard() {
                                 </div>
                                 {history.length > 0 ? (
                                     <div className="h-80 w-full">
-                                        <Line options={lineOptions} data={lineData}/>
+                                        <Line options={lineOptions} data={lineData} />
                                     </div>
                                 ) : (
                                     <div
@@ -263,8 +263,7 @@ export default function Dashboard() {
                                             </div>
                                             <div
                                                 className="text-2xl font-extrabold text-indigo-700 mt-1 leading-tight">{latestHistory.keputusan}</div>
-                                            <div className="text-xs text-indigo-500 mt-2">Periode:
-                                                Kelas {latestHistory.kelas}</div>
+                                            <div className="text-xs text-indigo-500 mt-2">Kelas {latestHistory.kelas} ({latestHistory.label})</div>
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between text-sm text-gray-600">
@@ -295,9 +294,9 @@ export default function Dashboard() {
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                                     <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor"
-                                         viewBox="0 0 24 24">
+                                        viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                     Riwayat Penilaian Lengkap
                                 </h3>
@@ -305,54 +304,55 @@ export default function Dashboard() {
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Periode
-                                            / Kelas
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor
-                                            Studi
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor
-                                            Kerja
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor
-                                            Wirausaha
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keputusan
-                                            Sistem
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                                    </tr>
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Periode
+                                                / Kelas
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor
+                                                Studi
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor
+                                                Kerja
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor
+                                                Wirausaha
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keputusan
+                                                Sistem
+                                            </th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                    {history.length > 0 ? (
-                                        history.map((item, index) => (
-                                            <tr key={index} className="hover:bg-gray-50 transition">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-bold text-gray-900">{item.label}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.skor_studi?.toFixed(4)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.skor_kerja?.toFixed(4)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.skor_wirausaha?.toFixed(4)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <BadgeKeputusan label={item.keputusan}/>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                    <Link to={`/siswa/result?id=${item.id}`}
-                                                          className="text-indigo-600 hover:text-indigo-900 text-sm font-medium hover:underline">
-                                                        Lihat Detail &rarr;
-                                                    </Link>
+                                        {history.length > 0 ? (
+                                            history.map((item, index) => (
+                                                <tr key={index} className="hover:bg-gray-50 transition">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-bold text-gray-900">Kelas {item.kelas}</div>
+                                                        <div className="text-xs text-gray-500">{item.label}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.skor_studi?.toFixed(4)}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.skor_kerja?.toFixed(4)}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.skor_wirausaha?.toFixed(4)}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <BadgeKeputusan label={item.keputusan} />
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <Link to={`/siswa/result?id=${item.id}`}
+                                                            className="text-indigo-600 hover:text-indigo-900 text-sm font-medium hover:underline">
+                                                            Lihat Detail &rarr;
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500 italic">Belum
+                                                    ada
+                                                    data riwayat.
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={6} className="px-6 py-8 text-center text-gray-500 italic">Belum
-                                                ada
-                                                data riwayat.
-                                            </td>
-                                        </tr>
-                                    )}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -373,7 +373,7 @@ export default function Dashboard() {
         total_siswa: 0, sudah_mengisi: 0, belum_mengisi: 0,
         rekomendasi_studi: 0, rekomendasi_kerja: 0, rekomendasi_wirausaha: 0
     };
-    const chart_distribution = data.chart_distribution || {labels: [], data: [], colors: []};
+    const chart_distribution = data.chart_distribution || { labels: [], data: [], colors: [] };
     const rekapitulasi = data.rekapitulasi || [];
     const trend_data = data.trend_data || { labels: [], studi: [], kerja: [], wirausaha: [] };
 
@@ -389,7 +389,7 @@ export default function Dashboard() {
     const doughnutOptions: any = {
         maintainAspectRatio: false,
         plugins: {
-            legend: {display: false},
+            legend: { display: false },
             tooltip: {
                 callbacks: {
                     label: function (context: any) {
@@ -460,35 +460,35 @@ export default function Dashboard() {
                         <StatCard
                             title="Total Siswa" value={stats.total_siswa} color="bg-blue-50" textColor="text-blue-700"
                             icon={<svg className="w-8 h-8 text-blue-300" fill="none" stroke="currentColor"
-                                       viewBox="0 0 24 24">
+                                viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                             </svg>}
                         />
                         <StatCard
                             title="Sudah Dinilai" value={stats.sudah_mengisi} color="bg-green-50"
                             textColor="text-green-700"
                             icon={<svg className="w-8 h-8 text-green-300" fill="none" stroke="currentColor"
-                                       viewBox="0 0 24 24">
+                                viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>}
                         />
                         <StatCard
                             title="Belum Mengisi" value={stats.belum_mengisi} color="bg-red-50" textColor="text-red-700"
                             icon={<svg className="w-8 h-8 text-red-300" fill="none" stroke="currentColor"
-                                       viewBox="0 0 24 24">
+                                viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>}
                         />
                         <StatCard
                             title="Dominasi Hasil" value={getMaxLabel(stats)} color="bg-purple-50"
                             textColor="text-purple-700"
                             icon={<svg className="w-8 h-8 text-purple-300" fill="none" stroke="currentColor"
-                                       viewBox="0 0 24 24">
+                                viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                             </svg>}
                         />
                     </div>
@@ -502,7 +502,7 @@ export default function Dashboard() {
                             </div>
                             <div className="flex flex-col sm:flex-row items-center justify-around h-64">
                                 <div className="h-full w-full sm:w-1/2 flex justify-center relative">
-                                    <Doughnut data={doughnutData} options={doughnutOptions}/>
+                                    <Doughnut data={doughnutData} options={doughnutOptions} />
                                     <div
                                         className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <div className="text-center">
@@ -514,11 +514,11 @@ export default function Dashboard() {
                                 </div>
                                 <div className="mt-6 sm:mt-0 space-y-4 w-full sm:w-1/3">
                                     <LegendItem color="bg-indigo-600" label="Melanjutkan Studi"
-                                                value={stats.rekomendasi_studi} total={stats.sudah_mengisi}/>
+                                        value={stats.rekomendasi_studi} total={stats.sudah_mengisi} />
                                     <LegendItem color="bg-emerald-500" label="Bekerja" value={stats.rekomendasi_kerja}
-                                                total={stats.sudah_mengisi}/>
+                                        total={stats.sudah_mengisi} />
                                     <LegendItem color="bg-orange-500" label="Wirausaha"
-                                                value={stats.rekomendasi_wirausaha} total={stats.sudah_mengisi}/>
+                                        value={stats.rekomendasi_wirausaha} total={stats.sudah_mengisi} />
                                 </div>
                             </div>
                         </div>
@@ -532,10 +532,10 @@ export default function Dashboard() {
                                         <div className="flex">
                                             <div className="flex-shrink-0">
                                                 <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20"
-                                                     fill="currentColor">
+                                                    fill="currentColor">
                                                     <path fillRule="evenodd"
-                                                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                                          clipRule="evenodd"/>
+                                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                        clipRule="evenodd" />
                                                 </svg>
                                             </div>
                                             <div className="ml-3">
@@ -550,15 +550,15 @@ export default function Dashboard() {
                                     {user.role === 'admin' ? (
                                         <>
                                             <Link to="/admin/monitoring"
-                                                  className="flex items-center justify-center w-full px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 transition">Monitoring
+                                                className="flex items-center justify-center w-full px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 transition">Monitoring
                                                 Siswa</Link>
                                             <Link to="/admin/settings"
-                                                  className="flex items-center justify-center w-full px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 transition">Pengaturan
+                                                className="flex items-center justify-center w-full px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 transition">Pengaturan
                                                 Sistem</Link>
                                         </>
                                     ) : (
                                         <Link to="/pakar/bwm"
-                                              className="flex items-center justify-center w-full px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 transition">Input
+                                            className="flex items-center justify-center w-full px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 transition">Input
                                             Bobot (BWM)</Link>
                                     )}
                                 </div>
@@ -576,7 +576,7 @@ export default function Dashboard() {
                             </h3>
                             <span className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full font-bold">Data Tahunan</span>
                         </div>
-                        
+
                         {trend_data.labels.length > 0 ? (
                             <div className="h-80 w-full">
                                 <Line options={adminLineOptions} data={adminLineData} />
@@ -593,52 +593,52 @@ export default function Dashboard() {
                         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-gray-800">Aktifitas Penilaian Terbaru</h3>
                             <Link to={`/${user.role}/monitoring`}
-                                  className="text-sm text-indigo-600 hover:text-indigo-900 font-medium">Lihat
+                                className="text-sm text-indigo-600 hover:text-indigo-900 font-medium">Lihat
                                 Semua &rarr;</Link>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama
-                                        Siswa
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jurusan</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai
-                                        Optima
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keputusan</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                                </tr>
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama
+                                            Siswa
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jurusan</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai
+                                            Optima
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keputusan</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                    </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                {rekapitulasi.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-10 text-center text-gray-500 italic">Belum
-                                            ada data penilaian siswa.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    rekapitulasi.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div
-                                                        className="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">{item.nama.charAt(0)}</div>
-                                                    <div className="ml-4">
-                                                        <div
-                                                            className="text-sm font-medium text-gray-900">{item.nama}</div>
-                                                    </div>
-                                                </div>
+                                    {rekapitulasi.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-gray-500 italic">Belum
+                                                ada data penilaian siswa.
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jurusan}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{item.nilai_optima ? item.nilai_optima.toFixed(4) : '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap"><BadgeKeputusan
-                                                label={item.keputusan}/></td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
                                         </tr>
-                                    ))
-                                )}
+                                    ) : (
+                                        rekapitulasi.map((item) => (
+                                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div
+                                                            className="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">{item.nama.charAt(0)}</div>
+                                                        <div className="ml-4">
+                                                            <div
+                                                                className="text-sm font-medium text-gray-900">{item.nama}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jurusan}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{item.nilai_optima ? item.nilai_optima.toFixed(4) : '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap"><BadgeKeputusan
+                                                    label={item.keputusan} /></td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -663,7 +663,7 @@ interface StatCardProps {
 }
 
 
-function StatCard({title, value, color, textColor, icon}: StatCardProps) {
+function StatCard({ title, value, color, textColor, icon }: StatCardProps) {
     return (
         <div
             className={`p-6 rounded-lg shadow-sm border border-gray-100 bg-white flex items-center justify-between transition hover:shadow-md`}>
@@ -683,7 +683,7 @@ interface LegendItemProps {
     total: number;
 }
 
-function LegendItem({color, label, value, total}: LegendItemProps) {
+function LegendItem({ color, label, value, total }: LegendItemProps) {
     const percent = total > 0 ? Math.round((value / total) * 100) : 0;
     return (
         <div className="flex items-center justify-between text-sm w-full group">
@@ -699,7 +699,7 @@ function LegendItem({color, label, value, total}: LegendItemProps) {
     );
 }
 
-function BadgeKeputusan({label}: { label: string }) {
+function BadgeKeputusan({ label }: { label: string }) {
     let classes = "bg-gray-100 text-gray-800";
     if (label === 'Melanjutkan Studi' || label.includes('Studi')) classes = "bg-indigo-100 text-indigo-800 border border-indigo-200";
     else if (label === 'Bekerja' || label.includes('Kerja')) classes = "bg-emerald-100 text-emerald-800 border border-emerald-200";

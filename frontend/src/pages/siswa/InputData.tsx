@@ -155,13 +155,26 @@ export default function InputDataSiswa() {
     const submit = async (e: FormEvent) => {
         e.preventDefault();
 
-        // Konfirmasi sebelum submit (Opsional, agar user yakin)
+        const isKuesionerLengkap = listKuesioner.every(k =>
+            k.list_pertanyaan.every(p => values[p.id] !== undefined && values[p.id] !== '')
+        );
+
+        if (!isKuesionerLengkap) {
+            MySwal.fire({
+                icon: 'warning',
+                title: 'Kuesioner Belum Lengkap',
+                text: 'Harap isi/pilih semua jawaban pada Bagian 2 (Kuesioner Minat) sebelum menyimpan data.',
+                confirmButtonColor: '#4f46e5'
+            });
+            return; // Hentikan proses submit
+        }
+
         const result = await MySwal.fire({
             title: 'Simpan Data?',
             text: "Pastikan semua data sudah terisi dengan benar.",
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#4f46e5', // Indigo-600
+            confirmButtonColor: '#4f46e5',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Ya, Simpan',
             cancelButtonText: 'Batal'

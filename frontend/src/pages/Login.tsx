@@ -43,7 +43,7 @@ export default function Login() {
                 if (result.refresh_token) {
                     localStorage.setItem('refresh_token', result.refresh_token);
                 }
-                
+
                 localStorage.setItem('user', JSON.stringify(result.user));
                 localStorage.setItem('role', result.user.role); // Simpan role juga
 
@@ -105,14 +105,14 @@ export default function Login() {
 
                 <form onSubmit={submit}>
                     <div>
-                        <InputLabel value="Username/NISN/NIP" />
+                        <InputLabel value="NISN/NIP" />
                         <TextInput
                             id="login_id"
                             type="text"
                             name="login_id"
                             value={data.login_id}
                             className="mt-1 block w-full"
-                            autoComplete="Username/NISN/NIP"
+                            autoComplete="NISN/NIP"
                             autoFocus
                             onChange={(e) => setData({ ...data, login_id: e.target.value })}
                         />
@@ -148,7 +148,7 @@ export default function Login() {
                         </PrimaryButton>
                     </div>
 
-                    <div className="mt-6 text-center">
+                    {/* <div className="mt-6 text-center">
                         <span className="text-sm text-gray-600">
                             Belum punya akun?
                         </span>
@@ -160,7 +160,7 @@ export default function Login() {
                         >
                             Daftar Sekarang
                         </button>
-                    </div>
+                    </div> */}
                 </form>
             </div>
 

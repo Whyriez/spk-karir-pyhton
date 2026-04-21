@@ -389,6 +389,7 @@ export default function AdminSiswaIndex() {
                                             <option value="10">Kelas 10</option>
                                             <option value="11">Kelas 11</option>
                                             <option value="12">Kelas 12</option>
+                                            <option value="Lulus">Lulus</option>
                                         </select>
                                         <select
                                             className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm w-2/3 sm:w-auto max-w-[200px] text-gray-600 font-medium cursor-pointer"
@@ -445,10 +446,25 @@ export default function AdminSiswaIndex() {
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">{item.jurusan_nama}</td>
                                                 <td className="px-6 py-4 text-center">
-                                                    {item.status_akhir_periode_ini === 'Tinggal Kelas' ?
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Tinggal Kelas</span> :
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Akan Naik</span>
-                                                    }
+                                                    {item.status_akhir_periode_ini === 'Lulus' ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            Lulus
+                                                        </span>
+                                                    ) : item.status_akhir_periode_ini === 'Tinggal Kelas' ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                            Tinggal Kelas
+                                                        </span>
+                                                    ) : item.status_akhir_periode_ini === 'Tidak Aktif' || item.status_akhir_periode_ini === 'Tidak Terdaftar' ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                            {item.status_akhir_periode_ini}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            {item.status_akhir_periode_ini === 'Aktif'
+                                                                ? (item.kelas_saat_ini === '12' ? 'Akan Lulus' : 'Akan Naik')
+                                                                : item.status_akhir_periode_ini}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-right text-sm font-medium">
                                                     <button onClick={() => openModal(item)} className="text-indigo-600 hover:text-indigo-900 font-bold mr-4">Edit</button>
@@ -526,7 +542,7 @@ export default function AdminSiswaIndex() {
 
                     <div className="space-y-4">
                         <div>
-                            <InputLabel value="NISN"  required />
+                            <InputLabel value="NISN" required />
                             <TextInput value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} type='number' className="w-full" required />
                         </div>
                         <div>

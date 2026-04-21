@@ -18,8 +18,8 @@ interface MonitoringItem {
         jurusan?: { nama_jurusan: string };
     };
     jurusan?: { nama_jurusan: string };
-    kelas?: string; 
-    tingkat_kelas?: string; 
+    kelas?: string;
+    tingkat_kelas?: string;
     keputusan_terbaik?: string;
     skor_studi?: number;
     skor_kerja?: number;
@@ -91,7 +91,7 @@ export default function MonitoringPakar() {
     const handlePrintUAT = async (target: 'admin' | 'pakar') => {
         try {
             const response = await apiClient.get('/monitoring/export-uat', {
-                params: { 
+                params: {
                     periode_id: selectedPeriode,
                     kelas: selectedKelas,
                     // Jika Kaprodi, kirim kosong saja, karena backend sudah otomatis mengunci berdasarkan user login
@@ -165,15 +165,15 @@ export default function MonitoringPakar() {
                         </thead>
                         <tbody>
                             ${data.map((item: any, i: number) => {
-                                const listJawaban = item.detail_jawaban
-                                    .map((dj: any) => `
+                const listJawaban = item.detail_jawaban
+                    .map((dj: any) => `
                                         <li>
                                             <span class="k-label">${dj.kriteria}</span>
                                             <span class="k-val">${dj.nilai}</span>
                                         </li>
                                     `).join('');
 
-                                return `
+                return `
                                 <tr>
                                     <td style="text-align: center; color: #6b7280;">${i + 1}</td>
                                     <td>
@@ -196,7 +196,7 @@ export default function MonitoringPakar() {
                                     </td>
                                 </tr>
                                 `;
-                            }).join('')}
+            }).join('')}
                         </tbody>
                     </table>
                 </body>
@@ -212,7 +212,7 @@ export default function MonitoringPakar() {
                 setTimeout(() => {
                     printWindow.print();
                     printWindow.close();
-                }, 700); 
+                }, 700);
             }
         } catch (error) {
             console.error("Gagal export UAT", error);
@@ -347,7 +347,7 @@ export default function MonitoringPakar() {
                                         <option value="12">Kelas 12</option>
                                     </select>
                                 </div>
-                                
+
                                 {/* Dropdown Jurusan di-hide jika yang login adalah Kaprodi */}
                                 {!isKaprodi && (
                                     <div className="lg:col-span-1">
@@ -364,9 +364,9 @@ export default function MonitoringPakar() {
                                     </div>
                                 )}
                             </div>
-                            
+
                             {/* Tombol PDF di Baris Bawah */}
-                            {selectedStatus === 'sudah' && (
+                            {/* {selectedStatus === 'sudah' && (
                                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                                     <button
                                         onClick={() => handlePrintUAT('pakar')}
@@ -382,7 +382,7 @@ export default function MonitoringPakar() {
                                         📊 Unduh PDF Rekapitulasi Admin
                                     </button>
                                 </div>
-                            )}
+                            )} */}
                         </div>
 
                         {/* --- TABLE SECTION --- */}
@@ -436,7 +436,7 @@ export default function MonitoringPakar() {
                                                         <div className="text-sm text-gray-500">{siswaNisn}</div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded mr-2">Kelas {kelas}</span> 
+                                                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded mr-2">Kelas {kelas}</span>
                                                         {jurusanName}
                                                     </td>
 
@@ -500,7 +500,7 @@ export default function MonitoringPakar() {
                                                 className={`px-3 py-1 text-sm rounded font-medium border ${link.active
                                                     ? 'bg-indigo-600 text-white border-indigo-600'
                                                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                                } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
+                                                    } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
                                         );

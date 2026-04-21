@@ -26,7 +26,6 @@ export default function Settings() {
     // Ambil fungsi refreshSettings dari context
     const { refreshSettings } = useLayout();
 
-    // State form sesuai dengan field di Laravel
     const [data, setData] = useState({
         nama_sekolah: "",
         timezone: "Asia/Jakarta",
