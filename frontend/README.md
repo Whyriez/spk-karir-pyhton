@@ -1,75 +1,83 @@
-# React + TypeScript + Vite
+# Frontend - SPK Karir
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ini adalah bagian antarmuka pengguna (frontend) untuk aplikasi **Sistem Pendukung Keputusan (SPK) Pemilihan Karir/Jurusan Siswa**. Dibangun menggunakan ekosistem modern berbasis **React** dan dikompilasi menggunakan **Vite** agar proses pengembangan lebih cepat.
 
-Currently, two official plugins are available:
+## Teknologi & Ekosistem Utama
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Proyek ini mengandalkan beberapa library modern untuk mendukung performa dan produktivitas:
 
-## React Compiler
+- **React 19**: Library UI _declarative_ berbasis komponen.
+- **TypeScript**: Menambahkan _static typing_ untuk struktur kode yang lebih rapi dan bebas _bug_.
+- **Vite (Rolldown)**: _Build tool_ dan _dev server_ ultra-cepat.
+- **Tailwind CSS v4**: _Utility-first framework_ untuk mendesain antarmuka secara responsif dan modern dengan ringkas.
+- **React Router DOM v7**: Pengelolaan navigasi (_Single Page Application_) secara _client-side_.
+- **Axios**: HTTP Client untuk mengirim permintaan (request) data ke Backend API.
+- **Chart.js & React-Chartjs-2**: Menampilkan visualisasi grafik data statistik dan hasil perhitungan SPK.
+- **Headless UI**: Untuk membuat komponen kompleks (seperti _dropdown_, _modal_, dll) yang mudah dikustomisasi menggunakan Tailwind.
+- **SweetAlert2**: Digunakan untuk menampilkan pesan pop-up interaktif (notifikasi sukses, error, peringatan, dll).
+- **NProgress**: Efek _loading bar_ tipis di ujung atas layar saat memuat halaman baru atau mengirim data.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Instalasi & Persiapan Lokal
 
-Note: This will impact Vite dev & build performances.
+### 1. Prasyarat
 
-## Expanding the ESLint configuration
+Pastikan sistem operasi Anda sudah terpasang:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Node.js** (Direkomendasikan versi 18 LTS ke atas)
+- **npm** (Atau yarn/pnpm)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 2. Install Dependensi (_Library_)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Buka terminal, pastikan berada di dalam folder `frontend`, lalu jalankan:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 3. Konfigurasi Environment (Lingkungan)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Terdapat file konfigurasi `.env` dan `.env.production`.
+Pastikan file `.env` sudah ada dan diatur untuk menunjuk ke Backend lokal. Secara umum, variabel yang krusial adalah lokasi API.
+Contoh isi `.env`:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_API_URL=http://127.0.0.1:5000/api
 ```
+
+_(Pastikan server backend Flask juga sudah berjalan)._
+
+---
+
+## Menjalankan Aplikasi
+
+### Mode Pengembangan (_Development_)
+
+Untuk menjalankan server pengembangan, gunakan perintah:
+
+```bash
+npm run dev
+```
+
+Secara _default_, aplikasi akan berjalan pada alamat `http://localhost:5173`. Fitur _Fast Refresh / HMR_ aktif, sehingga setiap perubahan pada file akan langsung tampil di _browser_.
+
+### Mode Produksi (_Build Production_)
+
+Jika kode sudah stabil dan ingin dikompilasi (dibungkus) menjadi file siap _deploy_, jalankan:
+
+```bash
+npm run build
+```
+
+Perintah ini akan memeriksa ketat kode TypeScript (`tsc -b`) dan mem-build (_minify_) file HTML, CSS, serta JavaScript ke dalam folder `dist/`.
+
+> **Integrasi dengan Backend:**
+> Jika Anda ingin backend (Flask) yang bertugas me-render _frontend_ ini, Anda bisa menyalin semua isi dari folder `dist/` ke folder `static/react/` yang berada di direktori `backend`.
+
+## Struktur Kode (_Source_) Utama
+
+Semua pengerjaan utama (_coding_) dilakukan di dalam folder `src/`.
+
+- `src/components/`: Berisi potongan-potongan UI yang dapat digunakan kembali (_reusable_), seperti _Button_, _Sidebar_, _Card_, dll.
+- `src/pages/` atau `src/views/`: Berisi struktur halaman per rute (misal halaman Login, Dashboard, Data Siswa, dsb).
+- `src/utils/` atau `src/services/`: File untuk fungsi _helper_ dan integrasi API (menggunakan _axios_).
+- `src/assets/`: Berisi gambar, icon, atau _font_ statis.

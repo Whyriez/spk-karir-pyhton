@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 // Tipe Data
 interface MonitoringItem {
     id: number;
+    siswa_id?: number;
     user_id?: number;
     name?: string;
     nisn?: string;
@@ -25,6 +26,7 @@ interface MonitoringItem {
     skor_kerja?: number;
     skor_wirausaha?: number;
     catatan_guru_bk?: string;
+    riwayat_rekomendasi?: { kelas: string; keputusan: string; periode: string }[];
 }
 
 interface Periode {
@@ -70,6 +72,11 @@ export default function MonitoringPakar() {
     const [catatanInput, setCatatanInput] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [detailData, setDetailData] = useState<any>(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
+    const [selectedRiwayatIdx, setSelectedRiwayatIdx] = useState(0);
+
     // Initial Mount: Cek User Role & Fetch Jurusan
     useEffect(() => {
         // Cek apakah user adalah kaprodi
@@ -87,6 +94,23 @@ export default function MonitoringPakar() {
             }
         }).catch(err => console.error(err));
     }, []);
+
+    const openDetailModal = async (item: MonitoringItem) => {
+        setIsDetailModalOpen(true);
+        setLoadingDetail(true);
+        setDetailData(null);
+        setSelectedRiwayatIdx(0);
+        try {
+            const targetId = item.siswa_id || item.user_id || item.id;
+            const res = await apiClient.get(`/monitoring/${targetId}/detail`);
+            setDetailData(res.data);
+        } catch (error) {
+            console.error("Gagal mengambil detail siswa", error);
+            alert("Terjadi kesalahan saat mengambil detail.");
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
 
     const handlePrintUAT = async (target: 'admin' | 'pakar') => {
         try {
@@ -397,6 +421,7 @@ export default function MonitoringPakar() {
                                         {selectedStatus === 'sudah' ? (
                                             <>
                                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Keputusan</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Riwayat</th>
                                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nilai Optima</th>
                                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Catatan BK</th>
                                                 <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -445,6 +470,18 @@ export default function MonitoringPakar() {
                                                             <td className="px-6 py-4 whitespace-nowrap">
                                                                 <BadgeKeputusan label={item.keputusan_terbaik || '-'} />
                                                             </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                                {item.riwayat_rekomendasi && item.riwayat_rekomendasi.length > 0 ? (
+                                                                    item.riwayat_rekomendasi.map((r, i) => (
+                                                                        <div key={i} className="mb-1 flex items-center gap-2">
+                                                                            <span className="font-bold text-gray-700 w-12">Kls {r.kelas}:</span>
+                                                                            <BadgeKeputusan label={r.keputusan} />
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-gray-400 italic">Belum ada riwayat</span>
+                                                                )}
+                                                            </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-600 font-mono">
                                                                 {getNilaiOptima(item)}
                                                             </td>
@@ -455,7 +492,13 @@ export default function MonitoringPakar() {
                                                                     <span className="italic text-gray-300">Belum ada catatan</span>
                                                                 )}
                                                             </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => openDetailModal(item)}
+                                                                    className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition-colors"
+                                                                >
+                                                                    Detail
+                                                                </button>
                                                                 <button
                                                                     onClick={() => openModal(item)}
                                                                     className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-bold transition-colors"
@@ -538,6 +581,110 @@ export default function MonitoringPakar() {
                             </PrimaryButton>
                         </div>
                     </form>
+                </div>
+            </Modal>
+
+            {/* --- MODAL DETAIL SISWA --- */}
+            <Modal show={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} maxWidth="2xl">
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-900">
+                            Detail Analisis Siswa
+                        </h3>
+                        <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                    </div>
+
+                    {loadingDetail ? (
+                        <div className="py-10 text-center font-bold text-gray-500">Memuat detail siswa...</div>
+                    ) : detailData ? (
+                        <div className="space-y-6">
+                            {/* Header Profil */}
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <h4 className="text-xl font-bold text-gray-900">{detailData.siswa.name}</h4>
+                                <div className="text-sm text-gray-600 flex gap-4 mt-1">
+                                    <span><span className="font-semibold">NISN:</span> {detailData.siswa.nisn}</span>
+                                    <span><span className="font-semibold">Jurusan:</span> {detailData.siswa.jurusan}</span>
+                                </div>
+                            </div>
+
+                            {detailData && (
+                                <div className="space-y-6">
+                                    {/* Bagian Navigasi Riwayat (Tab/Card) */}
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-3 border-b pb-1 text-sm uppercase">Pilih Riwayat Kelas</h4>
+                                        <div className="flex gap-2 overflow-x-auto pb-2">
+                                            {detailData.riwayat.map((r: any, i: number) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setSelectedRiwayatIdx(i)}
+                                                    className={`flex-shrink-0 p-3 rounded-lg border transition-all text-left w-48 ${selectedRiwayatIdx === i
+                                                            ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                                                            : 'border-gray-200 bg-white hover:border-gray-300'
+                                                        }`}
+                                                >
+                                                    <div className={`text-xs font-bold ${selectedRiwayatIdx === i ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                                        KELAS {r.kelas}
+                                                    </div>
+                                                    <div className="text-sm font-bold text-gray-900 truncate">{r.keputusan}</div>
+                                                    <div className="text-[10px] text-gray-400 mt-1">{r.periode}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Bagian Skor & Jawaban Dinamis berdasarkan Riwayat yang dipilih */}
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                            <h4 className="font-bold text-gray-700">Detail Jawaban: Kelas {detailData.riwayat[selectedRiwayatIdx].kelas}</h4>
+                                            <BadgeKeputusan label={detailData.riwayat[selectedRiwayatIdx].keputusan} />
+                                        </div>
+
+                                        <div className="p-4">
+                                            {/* Ringkasan Skor Periode Terpilih */}
+                                            <div className="grid grid-cols-3 gap-2 mb-6 text-center">
+                                                <div className="p-2 bg-blue-50 rounded-md">
+                                                    <div className="text-[10px] text-blue-600 font-bold">STUDI</div>
+                                                    <div className="font-mono font-bold">{detailData.riwayat[selectedRiwayatIdx].skor_studi}</div>
+                                                </div>
+                                                <div className="p-2 bg-green-50 rounded-md">
+                                                    <div className="text-[10px] text-green-600 font-bold">KERJA</div>
+                                                    <div className="font-mono font-bold">{detailData.riwayat[selectedRiwayatIdx].skor_kerja}</div>
+                                                </div>
+                                                <div className="p-2 bg-orange-50 rounded-md">
+                                                    <div className="text-[10px] text-orange-600 font-bold">WIRAUSAHA</div>
+                                                    <div className="font-mono font-bold">{detailData.riwayat[selectedRiwayatIdx].skor_wirausaha}</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Daftar Jawaban Periode Terpilih */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+                                                {detailData.riwayat[selectedRiwayatIdx].detail_jawaban.length > 0 ? (
+                                                    detailData.riwayat[selectedRiwayatIdx].detail_jawaban.map((dj: any, i: number) => (
+                                                        <div key={i} className="flex justify-between py-2 border-b border-gray-50 text-sm">
+                                                            <span className="text-gray-500 mr-2">{dj.kriteria}</span>
+                                                            <span className="font-semibold text-gray-800 text-right">{dj.nilai}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="col-span-2 text-center py-4 text-gray-400 italic">Data snapshot jawaban tidak tersedia untuk periode ini.</div>
+                                                )}
+                                            </div>
+
+                                            {/* Catatan BK Periode Terpilih */}
+                                            <div className="mt-6 p-3 bg-yellow-50 border border-yellow-100 rounded-lg">
+                                                <div className="text-xs font-bold text-yellow-700 mb-1 underline">CATATAN GURU BK (KELAS {detailData.riwayat[selectedRiwayatIdx].kelas}):</div>
+                                                <p className="text-sm text-yellow-900 italic">
+                                                    {detailData.riwayat[selectedRiwayatIdx].catatan_guru_bk || "Tidak ada catatan untuk periode ini."}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="py-10 text-center font-bold text-red-500">Gagal memuat data.</div>
+                    )}
                 </div>
             </Modal>
         </div>

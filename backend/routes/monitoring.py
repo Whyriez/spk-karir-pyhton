@@ -152,11 +152,19 @@ def index():
             .paginate(page=page, per_page=10, error_out=False)
 
         for item in pagination.items:
+            history_records = HasilRekomendasi.query.filter_by(siswa_id=item.siswa_id).order_by(asc(HasilRekomendasi.tingkat_kelas)).all()
+            riwayat = [{
+                'kelas': h.tingkat_kelas, 
+                'keputusan': h.keputusan_terbaik, 
+                'periode': h.periode.nama_periode if h.periode else '-'
+            } for h in history_records]
+
             data_items.append({
                 'id': item.id,
+                'siswa_id': item.siswa_id, # Pastikan ini ditambahkan
                 'user': {
                     'name': item.siswa.name,
-                    'nisn': item.siswa.username, # Diingatkan: NISN disimpan di username
+                    'nisn': item.siswa.username,
                     'jurusan': {
                         'nama_jurusan': item.siswa.jurusan.nama_jurusan if item.siswa.jurusan else '-'
                     }
@@ -166,7 +174,8 @@ def index():
                 'skor_studi': item.skor_studi,
                 'skor_kerja': item.skor_kerja,
                 'skor_wirausaha': item.skor_wirausaha,
-                'catatan_guru_bk': item.catatan_guru_bk
+                'catatan_guru_bk': item.catatan_guru_bk,
+                'riwayat_rekomendasi': riwayat # Tambahkan ini
             })
 
     else:
@@ -241,6 +250,143 @@ def index():
         'periodes': periodes_data
     })
 
+@monitoring_bp.route('/<int:siswa_id>/detail', methods=['GET'], strict_slashes=False)
+@jwt_required()
+def get_detail_siswa(siswa_id):
+    claims = get_jwt()
+    if claims.get('role') not in ['admin', 'pakar']:
+        return jsonify({'msg': 'Akses ditolak'}), 403
+
+    user = User.query.get_or_404(siswa_id)
+    semua_kriteria = Kriteria.query.order_by(Kriteria.id.asc()).all()
+    
+    history_records = HasilRekomendasi.query.filter_by(siswa_id=siswa_id).order_by(asc(HasilRekomendasi.tingkat_kelas)).all()
+    
+    riwayat_lengkap = []
+    for h in history_records:
+        snapshot = h.detail_snapshot or {}
+        detail_jawaban_periode = []
+
+        # 1. PARSE SNAPSHOT HISTORIS (JIKA ADA)
+        if isinstance(snapshot, list):
+            if len(snapshot) > 0 and isinstance(snapshot[0], dict) and 'kriteria' in snapshot[0] and 'nilai' in snapshot[0]:
+                detail_jawaban_periode = snapshot
+            else:
+                temp_dict = {}
+                for item in snapshot:
+                    if isinstance(item, dict):
+                        key = item.get('kriteria_id') or item.get('id') or item.get('kode')
+                        val = item.get('nilai_input') or item.get('nilai') or item.get('value')
+                        if key is not None and val is not None:
+                            temp_dict[str(key)] = val
+                snapshot = temp_dict
+
+        if isinstance(snapshot, dict) and not detail_jawaban_periode:
+            for kriteria in semua_kriteria:
+                nilai_angka = snapshot.get(kriteria.kode) or snapshot.get(str(kriteria.id))
+                if nilai_angka is not None:
+                    # --- Format Angka dan Label ---
+                    str_nilai = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+                    display_text = str_nilai
+                    tipe_input_str = str(kriteria.tipe_input).split('.')[-1]
+                    label_ditemukan = ""
+
+                    if tipe_input_str == 'likert':
+                        likert_map = {1: "Sangat Kurang", 2: "Kurang", 3: "Cukup", 4: "Baik", 5: "Sangat Baik"}
+                        label_ditemukan = likert_map.get(int(nilai_angka), "")
+                    elif tipe_input_str == 'select' and kriteria.opsi_pilihan:
+                        opsi = kriteria.opsi_pilihan
+                        if isinstance(opsi, str):
+                            try: opsi = json.loads(opsi)
+                            except: pass
+                        if isinstance(opsi, list):
+                            for opt in opsi:
+                                if isinstance(opt, dict):
+                                    opt_val = opt.get('val', opt.get('value', opt.get('id')))
+                                    if opt_val is not None and float(opt_val) == float(nilai_angka):
+                                        label_ditemukan = str(opt.get('label', opt.get('keterangan', opt.get('text'))))
+                                        break
+                        elif isinstance(opsi, dict):
+                            val_key = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+                            label_ditemukan = opsi.get(val_key, opsi.get(str(nilai_angka), ''))
+
+                    if label_ditemukan:
+                        display_text = f"{str_nilai} ({label_ditemukan})"
+
+                    detail_jawaban_periode.append({
+                        'kriteria': kriteria.nama,
+                        'nilai': display_text
+                    })
+
+        # =========================================================
+        # 2. FALLBACK JIKA SNAPSHOT KOSONG (Ambil Nilai Saat Ini)
+        # =========================================================
+        if not detail_jawaban_periode:
+            for kriteria in semua_kriteria:
+                nilai_angka = None
+                
+                # Mengambil langsung dari inputan terkini
+                if kriteria.sumber_nilai.name == 'static_jurusan':
+                    nsj = NilaiStaticJurusan.query.filter_by(jurusan_id=user.jurusan_id, kriteria_id=kriteria.id).first()
+                    if nsj is not None: nilai_angka = nsj.nilai
+                else:
+                    ns = NilaiSiswa.query.filter_by(siswa_id=user.id, kriteria_id=kriteria.id).first()
+                    if ns is not None: nilai_angka = ns.nilai_input
+
+                if nilai_angka is not None:
+                    str_nilai = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+                    display_text = str_nilai
+                    tipe_input_str = str(kriteria.tipe_input).split('.')[-1]
+                    label_ditemukan = ""
+
+                    if tipe_input_str == 'likert':
+                        likert_map = {1: "Sangat Kurang", 2: "Kurang", 3: "Cukup", 4: "Baik", 5: "Sangat Baik"}
+                        label_ditemukan = likert_map.get(int(nilai_angka), "")
+                    elif tipe_input_str == 'select' and kriteria.opsi_pilihan:
+                        opsi = kriteria.opsi_pilihan
+                        if isinstance(opsi, str):
+                            try: opsi = json.loads(opsi)
+                            except: pass
+                        if isinstance(opsi, list):
+                            for opt in opsi:
+                                if isinstance(opt, dict):
+                                    opt_val = opt.get('val', opt.get('value', opt.get('id')))
+                                    if opt_val is not None and float(opt_val) == float(nilai_angka):
+                                        label_ditemukan = str(opt.get('label', opt.get('keterangan', opt.get('text'))))
+                                        break
+                        elif isinstance(opsi, dict):
+                            val_key = str(int(nilai_angka)) if float(nilai_angka).is_integer() else str(nilai_angka)
+                            label_ditemukan = opsi.get(val_key, opsi.get(str(nilai_angka), ''))
+
+                    if label_ditemukan:
+                        display_text = f"{str_nilai} ({label_ditemukan})"
+
+                    detail_jawaban_periode.append({
+                        'kriteria': kriteria.nama,
+                        'nilai': display_text
+                    })
+
+        # Masukkan hasil akhir ke dalam list riwayat
+        riwayat_lengkap.append({
+            'id': h.id,
+            'kelas': h.tingkat_kelas,
+            'periode': h.periode.nama_periode if h.periode else '-',
+            'keputusan': h.keputusan_terbaik,
+            'skor_studi': round(h.skor_studi, 4) if h.skor_studi else 0,
+            'skor_kerja': round(h.skor_kerja, 4) if h.skor_kerja else 0,
+            'skor_wirausaha': round(h.skor_wirausaha, 4) if h.skor_wirausaha else 0,
+            'catatan_guru_bk': h.catatan_guru_bk,
+            'detail_jawaban': detail_jawaban_periode 
+        })
+
+    return jsonify({
+        'siswa': {
+            'name': user.name,
+            'nisn': user.username,
+            'jurusan': user.jurusan.nama_jurusan if user.jurusan else '-'
+        },
+        'riwayat': riwayat_lengkap
+    }), 200
 
 # --- UPDATE CATATAN ---
 @monitoring_bp.route('/<int:id>/catatan', methods=['POST'], strict_slashes=False)
