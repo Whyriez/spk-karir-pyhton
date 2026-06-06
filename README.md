@@ -1,12 +1,57 @@
-Manual Setup (Tanpa Docker)
-- Build Frontend:<br>
-cd frontend<br>
-npm install<br>
-npm run build <br>
-//Pastikan vite.config.js outputnya ke '../backend/static/react'
-- Setup Backend:<br>
-cd backend<br>
-python -m venv venv<br>
-source venv/bin/activate  # (Windows: venv\Scripts\activate)<br>
-pip install -r requirements.txt<br>
-python app.py
+# Sistem Pendukung Keputusan (SPK) Pemilihan Karir/Jurusan Siswa
+
+Aplikasi Sistem Pendukung Keputusan (SPK) untuk merekomendasikan Pemilihan Karir/Jurusan Siswa menggunakan metode kombinasi **BWM (Best Worst Method)** dan **MOORA (Multi-Objective Optimization on the basis of Ratio Analysis)**.
+
+Proyek ini menggunakan arsitektur *Full-Stack* yang terpisah antara sisi *Client* (Frontend) dan *Server* (Backend).
+
+---
+
+## 📂 Struktur Repositori
+
+Repositori ini terdiri dari dua bagian utama:
+
+1. **`backend/`**
+   Merupakan server REST API yang dibangun dengan **Flask (Python)**. Bertugas menangani operasi database (MySQL), autentikasi, serta menjalankan logika komputasi untuk algoritma BWM dan MOORA.
+   👉 **[Lihat Dokumentasi Backend](./backend/README.md)**
+
+2. **`frontend/`**
+   Merupakan antarmuka pengguna (UI) / *Single Page Application* yang dibangun dengan **React 19 (Vite)** dan **Tailwind CSS v4**. Bertugas menyajikan visualisasi data, form interaktif, dan laporan untuk admin, pakar, maupun pengguna.
+   👉 **[Lihat Dokumentasi Frontend](./frontend/README.md)**
+
+---
+
+## 🚀 Memulai Cepat (*Quick Start*)
+
+Untuk menjalankan aplikasi ini secara lokal (di komputer Anda), Anda perlu mengonfigurasi dan menyalakan **Backend** dan **Frontend** secara bersamaan.
+
+### Langkah 1: Setup Backend
+1. Buka terminal baru dan masuk ke folder backend:
+   ```bash
+   cd backend
+   ```
+2. Buat *virtual environment* Python, install dependencies (`requirements.txt`), atur `.env` untuk database MySQL, dan jalankan server Flask.
+3. Penjelasan lebih detail: **[Baca README Backend](./backend/README.md)**.
+
+### Langkah 2: Setup Frontend
+1. Buka tab terminal baru (biarkan terminal backend tetap menyala) dan masuk ke folder frontend:
+   ```bash
+   cd frontend
+   ```
+2. Install library JavaScript (`npm install`), atur koneksi API di `.env`, lalu jalankan server Vite.
+3. Penjelasan lebih detail: **[Baca README Frontend](./frontend/README.md)**.
+
+---
+
+## 🧠 Metode SPK yang Digunakan
+
+Aplikasi ini menggunakan pendekatan **Hybrid** untuk memberikan rekomendasi terbaik:
+- **BWM (Best Worst Method)**: Metode ini digunakan pada tahap awal untuk **pembobotan kriteria**. Pakar akan menentukan kriteria terbaik (*Best*) dan terburuk (*Worst*), lalu membandingkan tingkat kepentingannya terhadap kriteria lain untuk mendapatkan bobot akhir yang konsisten.
+- **MOORA (Multi-Objective Optimization on the basis of Ratio Analysis)**: Setelah bobot didapatkan, metode MOORA digunakan untuk memproses matriks nilai siswa (alternatif) terhadap masing-masing kriteria. Hasil akhirnya adalah nilai optimasi dan **perankingan** siswa pada jurusan tertentu.
+
+## ✨ Fitur Utama Aplikasi
+- **Manajemen User Terpusat**: Autentikasi JWT untuk Admin, Pakar, dsb.
+- **Master Data Dinamis**: Pengelolaan Tahun Ajaran (Periode), Jurusan, Kriteria, dan Data Siswa (beserta Riwayat Kenaikan Kelas otomatis).
+- **Penilaian Fleksibel**: Input nilai akademik dan psikotes untuk masing-masing siswa.
+- **Komputasi Cerdas**: Simulasi perhitungan SPK dari langkah awal normalisasi hingga *ranking* akhir.
+- **Dashboard & Monitoring**: Visualisasi grafik interaktif untuk melihat sebaran jurusan rekomendasi.
+- **Automatisasi (Cron Job)**: Fitur kenaikan tingkat kelas atau kelulusan otomatis di akhir periode ganjil/genap (menggunakan *Flask-APScheduler*).
