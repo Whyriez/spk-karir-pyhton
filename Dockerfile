@@ -7,9 +7,8 @@ RUN npm install
 
 # Copy source code React
 COPY frontend/ .
-# Build production (Output ke folder dist atau sesuai vite.config)
-# Kita paksa output ke folder dist di dalam container ini
-RUN npm run build -- --outDir dist
+# Build production (Output ke folder dist secara bawaan)
+RUN npm run build
 
 # --- Stage 2: Setup Backend (Python Flask) ---
 FROM python:3.10-slim

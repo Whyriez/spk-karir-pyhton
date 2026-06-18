@@ -22,9 +22,32 @@ Repositori ini terdiri dari dua bagian utama:
 
 ## 🚀 Memulai Cepat (*Quick Start*)
 
-Untuk menjalankan aplikasi ini secara lokal (di komputer Anda), Anda perlu mengonfigurasi dan menyalakan **Backend** dan **Frontend** secara bersamaan.
+### Opsi A: Menggunakan Docker (Rekomendasi & Praktis)
 
-### Langkah 1: Setup Backend
+Aplikasi ini sudah siap dijalankan menggunakan **Docker**. Proses build *frontend* akan otomatis digabungkan dengan server *backend*, dan database MySQL juga akan disiapkan secara otomatis.
+
+**Langkah-langkah:**
+1. Pastikan **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (atau Docker Compose) sudah berjalan di komputer Anda.
+2. Buka terminal di *root* folder proyek ini (tempat file `docker-compose.yml` berada), lalu jalankan perintah berikut untuk mem-build dan menyalakan container:
+   ```bash
+   docker-compose up -d --build
+   ```
+3. Tunggu hingga proses instalasi dan build selesai. Setelah container menyala, database masih kosong. Lakukan migrasi tabel beserta pengisian data awal (*seeding*) dengan menjalankan:
+   ```bash
+   docker-compose exec web flask migrate_fresh
+   ```
+4. 🎉 **Selesai!** Buka browser Anda dan akses:
+   👉 **http://localhost:5000**
+
+*Catatan: Untuk mematikan aplikasi, jalankan perintah `docker-compose down`.*
+
+---
+
+### Opsi B: Instalasi Manual (Mode Pengembangan/Development)
+
+Jika Anda ingin mengedit kode dan menjalankan server backend/frontend secara terpisah:
+
+#### Langkah 1: Setup Backend
 1. Buka terminal baru dan masuk ke folder backend:
    ```bash
    cd backend

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   web:
@@ -9,7 +9,8 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=production
       - SECRET_KEY=kunci_rahasia_untuk_local
-      - DB_HOST=skripsi-spkdb-f90puq
+      - JWT_SECRET_KEY=kunci_rahasia_jwt_untuk_local
+      - DB_HOST=db
       - DB_PORT=3306
       - DB_DATABASE=spk_db
       - DB_USERNAME=user
@@ -29,7 +30,7 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - skripsi-spkdb-f90puq-data:/var/lib/mysql
+      - db_data:/var/lib/mysql
 
 volumes:
-  skripsi-spkdb-f90puq-data:
+  db_data:
