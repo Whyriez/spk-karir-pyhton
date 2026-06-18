@@ -10,6 +10,7 @@ npm run build
 cd ..
 
 echo "[2/3] Menyalin hasil build ke folder statis Backend..."
+rm -rf backend/static/react
 mkdir -p backend/static/react
 # Menyalin seluruh isi folder dist ke static/react
 cp -r frontend/dist/* backend/static/react/

@@ -43,7 +43,19 @@ Aplikasi ini sudah siap dijalankan menggunakan **Docker**. Proses build *fronten
 
 ---
 
-### Opsi B: Instalasi Manual (Mode Pengembangan/Development)
+### Opsi B: Menggunakan Script Otomatis (Native Single-Service)
+
+Jika Anda tidak menggunakan Docker tetapi ingin menjalankan aplikasi secara praktis layaknya *production*, Anda bisa menggunakan *script runner* yang sudah kami sediakan. Script ini akan otomatis mem-build *frontend*, menggabungkannya ke *backend*, mengatur *virtual environment*, dan menjalankan server.
+
+**Prasyarat:** Node.js, Python, dan MySQL sudah terinstal di komputer. Konfigurasi database di file `backend/.env` juga harus sudah diatur.
+- **Pengguna Windows**: Klik ganda pada file `run_windows.bat` atau jalankan via terminal.
+- **Pengguna Linux/Mac**: Jalankan `bash run_linux.sh` (pastikan script sudah *executable* dengan `chmod +x run_linux.sh`).
+
+Aplikasi akan otomatis dapat diakses pada: **http://localhost:5000**
+
+---
+
+### Opsi C: Instalasi Manual (Mode Pengembangan/Development)
 
 Jika Anda ingin mengedit kode dan menjalankan server backend/frontend secara terpisah:
 

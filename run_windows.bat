@@ -7,10 +7,12 @@ echo [1/3] Membangun Frontend (React Vite)...
 cd frontend
 call npm install
 call npm run build
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 cd ..
 
 echo [2/3] Menyalin hasil build ke folder statis Backend...
-if not exist "backend\static\react" mkdir "backend\static\react"
+if exist "backend\static\react" rmdir /s /q "backend\static\react"
+mkdir "backend\static\react"
 :: Menyalin seluruh isi folder dist ke static/react
 xcopy /s /y /q "frontend\dist\*" "backend\static\react\"
 
