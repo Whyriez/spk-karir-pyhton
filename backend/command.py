@@ -202,17 +202,16 @@ def seed_users_dan_riwayat():
         print("   ⚠️  Warning: Tidak ada periode aktif, Riwayat Kelas mungkin gagal.")
 
     def create_user(data, role_enum, kelas_info=None):
+        # Pencarian user tetap menggunakan field username (yang sekarang berisi NIP/NISN)
         u = User.query.filter_by(username=data['username']).first()
         if not u:
             u = User(
                 name=data['name'],
-                email=data['email'],
                 username=data['username'],
                 password=generate_password_hash(data['password']),
                 role=role_enum,
                 jenis_pakar=data.get('jenis_pakar'),
-                jurusan_id=data.get('jurusan_id'),
-                nisn=data.get('nisn')
+                jurusan_id=data.get('jurusan_id')
             )
             db.session.add(u)
             db.session.flush()  
@@ -233,33 +232,33 @@ def seed_users_dan_riwayat():
                 )
                 db.session.add(riwayat)
 
-    # 1. Admin
+    # 1. Admin (Menggunakan NIP dummy sebagai username)
     create_user({
-        'name': 'Administrator Sistem', 'email': 'admin@smk.id', 'username': 'admin', 'password': '123'
+        'name': 'Administrator Sistem', 'username': '198001012005011001', 'password': '123'
     }, RoleEnum.admin)
 
-    # 2. Pakar Guru BK
+    # 2. Pakar Guru BK (Menggunakan NIP dummy sebagai username)
     create_user({
-        'name': 'Ibu Guru BK', 'email': 'gurubk@smk.id', 'username': 'gurubk', 'password': '123',
+        'name': 'Ibu Guru BK', 'username': '198502022010012002', 'password': '123',
         'jenis_pakar': 'gurubk'
     }, RoleEnum.pakar)
 
-    # 3. Pakar Kaprodi
+    # 3. Pakar Kaprodi (Menggunakan NIP dummy sebagai username)
     create_user({
-        'name': 'Bapak Kaprodi TKJ', 'email': 'kaprodi@smk.id', 'username': 'kaprodi', 'password': '123',
+        'name': 'Bapak Kaprodi TKJ', 'username': '197803032003011003', 'password': '123',
         'jenis_pakar': 'kaprodi', 'jurusan_id': jurusan_tkj.id if jurusan_tkj else None
     }, RoleEnum.pakar)
 
-    # 4. Siswa Kelas 12
+    # 4. Siswa Kelas 12 (Menggunakan NISN sebagai username)
     create_user({
-        'name': 'Alim Suma (Kls 12)', 'email': 'alim@student.ung.ac.id', 'username': 'siswa12', 'password': '123',
-        'nisn': '531422058', 'jurusan_id': jurusan_tkj.id if jurusan_tkj else None
+        'name': 'Ucup Supriatna (Kls 12)', 'username': '0044432128', 'password': '123',
+        'jurusan_id': jurusan_tkj.id if jurusan_tkj else None
     }, RoleEnum.siswa, kelas_info={'tingkat': '12', 'jurusan_id': jurusan_tkj.id if jurusan_tkj else None})
 
-    # 5. Siswa Kelas 10
+    # 5. Siswa Kelas 10 (Menggunakan NISN dummy sebagai username)
     create_user({
-        'name': 'Budi Santoso (Kls 10)', 'email': 'budi@smk.id', 'username': 'siswa10', 'password': '123',
-        'nisn': '123456789', 'jurusan_id': jurusan_tkj.id if jurusan_tkj else None
+        'name': 'Acong Slamet (Kls 10)', 'username': '123456789', 'password': '123',
+        'jurusan_id': jurusan_tkj.id if jurusan_tkj else None
     }, RoleEnum.siswa, kelas_info={'tingkat': '10', 'jurusan_id': jurusan_tkj.id if jurusan_tkj else None})
 
     db.session.commit()
