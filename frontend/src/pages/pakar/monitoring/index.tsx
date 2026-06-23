@@ -112,137 +112,137 @@ export default function MonitoringPakar() {
         }
     };
 
-    const handlePrintUAT = async (target: 'admin' | 'pakar') => {
-        try {
-            const response = await apiClient.get('/monitoring/export-uat', {
-                params: {
-                    periode_id: selectedPeriode,
-                    kelas: selectedKelas,
-                    // Jika Kaprodi, kirim kosong saja, karena backend sudah otomatis mengunci berdasarkan user login
-                    jurusan_id: isKaprodi ? '' : selectedJurusan
-                }
-            });
-            const data = response.data.data;
+    // const handlePrintUAT = async (target: 'admin' | 'pakar') => {
+    //     try {
+    //         const response = await apiClient.get('/monitoring/export-uat', {
+    //             params: {
+    //                 periode_id: selectedPeriode,
+    //                 kelas: selectedKelas,
+    //                 // Jika Kaprodi, kirim kosong saja, karena backend sudah otomatis mengunci berdasarkan user login
+    //                 jurusan_id: isKaprodi ? '' : selectedJurusan
+    //             }
+    //         });
+    //         const data = response.data.data;
 
-            if (data.length === 0) {
-                alert("Tidak ada data siswa untuk kriteria filter ini.");
-                return;
-            }
+    //         if (data.length === 0) {
+    //             alert("Tidak ada data siswa untuk kriteria filter ini.");
+    //             return;
+    //         }
 
-            const isPakar = target === 'pakar';
-            const title = isPakar ? 'LEMBAR VALIDASI PAKAR (BLIND TEST)' : 'LEMBAR REKAPITULASI UAT (SISTEM VS PAKAR)';
-            const desc = isPakar
-                ? 'Mohon berikan rekomendasi karir (Melanjutkan Studi / Bekerja / Berwirausaha) berdasarkan profil indikator masing-masing siswa.'
-                : 'Digunakan untuk rekapitulasi perhitungan Confusion Matrix pengujian fungsionalitas sistem.';
+    //         const isPakar = target === 'pakar';
+    //         const title = isPakar ? 'LEMBAR VALIDASI PAKAR (BLIND TEST)' : 'LEMBAR REKAPITULASI UAT (SISTEM VS PAKAR)';
+    //         const desc = isPakar
+    //             ? 'Mohon berikan rekomendasi karir (Melanjutkan Studi / Bekerja / Berwirausaha) berdasarkan profil indikator masing-masing siswa.'
+    //             : 'Digunakan untuk rekapitulasi perhitungan Confusion Matrix pengujian fungsionalitas sistem.';
 
-            const printContents = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${title}</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-                    <style>
-                        body { font-family: 'Inter', sans-serif; padding: 20px; color: #1f2937; line-height: 1.5; background: #fff; }
-                        @media print {
-                            body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            table { page-break-inside: auto; }
-                            tr { page-break-inside: avoid; page-break-after: auto; }
-                            thead { display: table-header-group; }
-                            tfoot { display: table-footer-group; }
-                        }
-                        .kop-header { text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; }
-                        .kop-header h2 { margin: 0 0 5px 0; font-size: 18px; color: #111827; letter-spacing: 0.5px; }
-                        .kop-header p { margin: 0; color: #6b7280; font-size: 12px; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-                        th, td { border: 1px solid #d1d5db; padding: 12px 10px; vertical-align: top; }
-                        th { background-color: #f3f4f6; color: #374151; font-weight: 700; text-transform: uppercase; font-size: 11px; text-align: left; }
-                        tbody tr:nth-child(even) { background-color: #f9fafb; }
-                        .siswa-name { font-size: 13px; font-weight: 700; color: #111827; }
-                        .siswa-nisn { font-size: 11px; color: #6b7280; margin-top: 4px; }
-                        .jawaban-list { list-style: none; margin: 0; padding: 0; }
-                        .jawaban-list li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
-                        .jawaban-list li:last-child { border-bottom: none; padding-bottom: 0; }
-                        .k-label { color: #4b5563; max-width: 60%; }
-                        .k-val { font-weight: 600; color: #111827; text-align: right; max-width: 40%; }
-                        .tf-container { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
-                        .tf-item { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: #4b5563; }
-                        .box { width: 14px; height: 14px; border: 1.5px solid #9ca3af; border-radius: 3px; margin-right: 8px; background: #fff; }
-                        .sys-rec { font-weight: 700; color: #0369a1; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; display: inline-block; border: 1px solid #bae6fd; }
-                    </style>
-                </head>
-                <body>
-                    <div class="kop-header">
-                        <h2>${title}</h2>
-                        <p>${desc}</p>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 3%; text-align: center;">No</th>
-                                <th style="width: 17%;">Identitas Siswa</th>
-                                <th style="width: ${isPakar ? '50%' : '40%'};">Profil Jawaban / Kriteria Analisis</th>
-                                ${!isPakar ? `<th style="width: 15%;">Rekomendasi Sistem</th>` : ''}
-                                <th style="width: ${isPakar ? '20%' : '15%'};">Rekomendasi Pakar</th>
-                                <th style="width: 10%; text-align: center;">Sesuai?</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.map((item: any, i: number) => {
-                const listJawaban = item.detail_jawaban
-                    .map((dj: any) => `
-                                        <li>
-                                            <span class="k-label">${dj.kriteria}</span>
-                                            <span class="k-val">${dj.nilai}</span>
-                                        </li>
-                                    `).join('');
+    //         const printContents = `
+    //             <!DOCTYPE html>
+    //             <html>
+    //             <head>
+    //                 <meta charset="UTF-8">
+    //                 <title>${title}</title>
+    //                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    //                 <style>
+    //                     body { font-family: 'Inter', sans-serif; padding: 20px; color: #1f2937; line-height: 1.5; background: #fff; }
+    //                     @media print {
+    //                         body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    //                         table { page-break-inside: auto; }
+    //                         tr { page-break-inside: avoid; page-break-after: auto; }
+    //                         thead { display: table-header-group; }
+    //                         tfoot { display: table-footer-group; }
+    //                     }
+    //                     .kop-header { text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; }
+    //                     .kop-header h2 { margin: 0 0 5px 0; font-size: 18px; color: #111827; letter-spacing: 0.5px; }
+    //                     .kop-header p { margin: 0; color: #6b7280; font-size: 12px; }
+    //                     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    //                     th, td { border: 1px solid #d1d5db; padding: 12px 10px; vertical-align: top; }
+    //                     th { background-color: #f3f4f6; color: #374151; font-weight: 700; text-transform: uppercase; font-size: 11px; text-align: left; }
+    //                     tbody tr:nth-child(even) { background-color: #f9fafb; }
+    //                     .siswa-name { font-size: 13px; font-weight: 700; color: #111827; }
+    //                     .siswa-nisn { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    //                     .jawaban-list { list-style: none; margin: 0; padding: 0; }
+    //                     .jawaban-list li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
+    //                     .jawaban-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    //                     .k-label { color: #4b5563; max-width: 60%; }
+    //                     .k-val { font-weight: 600; color: #111827; text-align: right; max-width: 40%; }
+    //                     .tf-container { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+    //                     .tf-item { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: #4b5563; }
+    //                     .box { width: 14px; height: 14px; border: 1.5px solid #9ca3af; border-radius: 3px; margin-right: 8px; background: #fff; }
+    //                     .sys-rec { font-weight: 700; color: #0369a1; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; display: inline-block; border: 1px solid #bae6fd; }
+    //                 </style>
+    //             </head>
+    //             <body>
+    //                 <div class="kop-header">
+    //                     <h2>${title}</h2>
+    //                     <p>${desc}</p>
+    //                 </div>
+    //                 <table>
+    //                     <thead>
+    //                         <tr>
+    //                             <th style="width: 3%; text-align: center;">No</th>
+    //                             <th style="width: 17%;">Identitas Siswa</th>
+    //                             <th style="width: ${isPakar ? '50%' : '40%'};">Profil Jawaban / Kriteria Analisis</th>
+    //                             ${!isPakar ? `<th style="width: 15%;">Rekomendasi Sistem</th>` : ''}
+    //                             <th style="width: ${isPakar ? '20%' : '15%'};">Rekomendasi Pakar</th>
+    //                             <th style="width: 10%; text-align: center;">Sesuai?</th>
+    //                         </tr>
+    //                     </thead>
+    //                     <tbody>
+    //                         ${data.map((item: any, i: number) => {
+    //             const listJawaban = item.detail_jawaban
+    //                 .map((dj: any) => `
+    //                                     <li>
+    //                                         <span class="k-label">${dj.kriteria}</span>
+    //                                         <span class="k-val">${dj.nilai}</span>
+    //                                     </li>
+    //                                 `).join('');
 
-                return `
-                                <tr>
-                                    <td style="text-align: center; color: #6b7280;">${i + 1}</td>
-                                    <td>
-                                        <div class="siswa-name">${item.name}</div>
-                                        <div class="siswa-nisn">NISN: ${item.nisn || '-'}</div>
-                                    </td>
-                                    <td>
-                                        <ul class="jawaban-list">
-                                            ${listJawaban}
-                                        </ul>
-                                    </td>
-                                    ${!isPakar ? `<td><span class="sys-rec">${item.keputusan_terbaik}</span></td>` : ''}
-                                    <td>
-                                        </td>
-                                    <td>
-                                        <div class="tf-container">
-                                            <div class="tf-item"><div class="box"></div> True</div>
-                                            <div class="tf-item"><div class="box"></div> False</div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                `;
-            }).join('')}
-                        </tbody>
-                    </table>
-                </body>
-                </html>
-            `;
+    //             return `
+    //                             <tr>
+    //                                 <td style="text-align: center; color: #6b7280;">${i + 1}</td>
+    //                                 <td>
+    //                                     <div class="siswa-name">${item.name}</div>
+    //                                     <div class="siswa-nisn">NISN: ${item.nisn || '-'}</div>
+    //                                 </td>
+    //                                 <td>
+    //                                     <ul class="jawaban-list">
+    //                                         ${listJawaban}
+    //                                     </ul>
+    //                                 </td>
+    //                                 ${!isPakar ? `<td><span class="sys-rec">${item.keputusan_terbaik}</span></td>` : ''}
+    //                                 <td>
+    //                                     </td>
+    //                                 <td>
+    //                                     <div class="tf-container">
+    //                                         <div class="tf-item"><div class="box"></div> True</div>
+    //                                         <div class="tf-item"><div class="box"></div> False</div>
+    //                                     </div>
+    //                                 </td>
+    //                             </tr>
+    //                             `;
+    //         }).join('')}
+    //                     </tbody>
+    //                 </table>
+    //             </body>
+    //             </html>
+    //         `;
 
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.write(printContents);
-                printWindow.document.close();
-                printWindow.focus();
+    //         const printWindow = window.open('', '_blank');
+    //         if (printWindow) {
+    //             printWindow.document.write(printContents);
+    //             printWindow.document.close();
+    //             printWindow.focus();
 
-                setTimeout(() => {
-                    printWindow.print();
-                    printWindow.close();
-                }, 700);
-            }
-        } catch (error) {
-            console.error("Gagal export UAT", error);
-            alert("Terjadi kesalahan saat mengambil data untuk dicetak.");
-        }
-    };
+    //             setTimeout(() => {
+    //                 printWindow.print();
+    //                 printWindow.close();
+    //             }, 700);
+    //         }
+    //     } catch (error) {
+    //         console.error("Gagal export UAT", error);
+    //         alert("Terjadi kesalahan saat mengambil data untuk dicetak.");
+    //     }
+    // };
 
     // --- FETCH DATA ---
     const fetchData = async (url: string | null = '/monitoring') => {
